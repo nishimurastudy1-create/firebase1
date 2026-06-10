@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ランキング — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .page-wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    /* ヒーロー */
+    .ranking-hero {
+      background: linear-gradient(135deg, #6b3006, #B45309, #D97706);
+      border-radius: var(--r-xl);
+      padding: 28px 28px 24px;
+      color: #fff;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-lg);
+      display: flex; align-items: center; gap: 18px;
+    }
+    .rh-icon { font-size: 48px; }
+    .rh-title { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .rh-sub   { font-size: 13px; opacity: .85; }
+    .rh-score {
+      margin-left: auto; text-align: right; flex-shrink: 0;
+    }
+    .rh-score-val { font-size: 28px; font-weight: 700; }
+    .rh-score-lbl { font-size: 12px; opacity: .8; }
+    .rh-rank-val  { font-size: 14px; margin-top: 4px; opacity: .9; }
+
+    /* タブ */
+    .tab-row {
+      display: flex; gap: 4px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-lg);
+      padding: 4px;
+      margin-bottom: 18px;
+    }
+    .tab {
+      flex: 1; text-align: center;
+      padding: 8px;
+      border-radius: var(--r-md);
+      font-size: 13px; cursor: pointer;
+      color: var(--c-text-2);
+      transition: all var(--dur);
+      border: none; background: transparent;
+      font-family: var(--font-ja);
+    }
+    .tab.on { background: var(--c-primary); color: #fff; font-weight: 500; }
+    .tab:hover:not(.on) { background: var(--c-bg); }
+
+    /* ランキングリスト */
+    .rank-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 18px;
+    }
+    .rank-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--c-border-lt);
+      transition: background var(--dur);
+    }
+    .rank-item:last-child { border-bottom: none; }
+    .rank-item:hover { background: var(--c-bg); }
+    .rank-item.me { background: var(--c-primary-lt); }
+    .rank-item.me:hover { background: var(--c-primary-lt); }
+
+    .rank-no {
+      font-size: 16px; font-weight: 700;
+      width: 36px; text-align: center; flex-shrink: 0;
+    }
+    .rank-no.g1 { color: #b8860b; font-size: 22px; }
+    .rank-no.g2 { color: #888; font-size: 20px; }
+    .rank-no.g3 { color: #8b4513; font-size: 18px; }
+
+    .rank-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--c-primary-lt);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 500; color: var(--c-primary);
+      flex-shrink: 0;
+    }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name  { font-size: 14px; font-weight: 500; color: var(--c-text); }
+    .rank-meta  { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    .rank-score-area { text-align: right; flex-shrink: 0; }
+    .rank-score { font-size: 18px; font-weight: 700; color: var(--c-primary); }
+    .rank-score-lbl { font-size: 11px; color: var(--c-text-3); }
+
+    .rank-loading { text-align: center; padding: 40px; color: var(--c-text-3); }
+
+    /* ログインCTA */
+    .login-cta {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      padding: 24px;
+      text-align: center;
+    }
+    .lc-icon  { font-size: 36px; color: #B45309; margin-bottom: 10px; }
+    .lc-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+    .lc-sub   { font-size: 13px; color: var(--c-text-2); margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-title">ランキング</div>
+    <div class="page-sub">累計スコア上位ユーザー</div>
+  </div>
+
+  <!-- マイスコアバナー -->
+  <div class="ranking-hero" id="my-banner" style="display:none">
+    <div class="rh-icon">🏆</div>
+    <div>
+      <div class="rh-title" id="my-name">—</div>
+      <div class="rh-sub">参加中のランキング</div>
+    </div>
+    <div class="rh-score">
+      <div class="rh-score-val" id="my-score">0pt</div>
+      <div class="rh-score-lbl">累計スコア</div>
+      <div class="rh-rank-val" id="my-rank"></div>
+    </div>
+  </div>
+
+  <!-- タブ -->
+  <div class="tab-row">
+    <button class="tab on" data-tab="all" onclick="switchTab(this)">
+      <i class="ti ti-world"></i> 総合
+    </button>
+    <button class="tab" data-tab="week" onclick="switchTab(this)">
+      <i class="ti ti-calendar-week"></i> 今週
+    </button>
+  </div>
+
+  <!-- ランキングリスト -->
+  <div class="rank-card" id="rank-list">
+    <div class="rank-loading">
+      <div class="spinner" style="margin: 0 auto 10px"></div>
+      読み込み中...
+    </div>
+  </div>
+
+  <!-- ログインCTA（未ログイン） -->
+  <div class="login-cta" id="login-cta" style="display:none">
+    <div class="lc-icon"><i class="ti ti-trophy"></i></div>
+    <div class="lc-title">ランキングに参加しませんか？</div>
+    <div class="lc-sub">ログインするとクイズのスコアを登録してランキングで競えます</div>
+    <button class="btn btn-primary btn-lg" onclick="location.href='login.html'">
+      <i class="ti ti-login"></i>ログインして参加
+    </button>
+  </div>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, initMobileNav, renderTopbar, renderFooter } from "./js/firebase.js";
+  import { initAuthUI, getCurrentUser } from "./js/auth.js";
+  import { db } from "./js/firebase.js";
+  import {
+    collection, query, orderBy, limit, getDocs, doc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("ランキング");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+  initMobileNav();
+  initAuthUI();
+
+  let currentUser = null;
+  let currentTab  = "all";
+
+  // ============================================================
+  //  タブ切り替え
+  // ============================================================
+  window.switchTab = function(btn) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("on"));
+    btn.classList.add("on");
+    currentTab = btn.dataset.tab;
+    loadRanking();
+  };
+
+  // ============================================================
+  //  ランキング読み込み
+  // ============================================================
+  async function loadRanking() {
+    const el = document.getElementById("rank-list");
+    el.innerHTML = `<div class="rank-loading"><div class="spinner" style="margin:0 auto 10px"></div>読み込み中...</div>`;
+
+    try {
+      const q = query(
+        collection(db, "rankings"),
+        orderBy("totalScore", "desc"),
+        limit(50)
+      );
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        el.innerHTML = `<div class="rank-loading">まだランキングデータがありません。<br>クイズに挑戦してスコアを登録しましょう！</div>`;
+        return;
+      }
+
+      const medals = ["🥇","🥈","🥉"];
+      const myUid  = currentUser?.uid;
+      let myRank   = null;
+
+      const rows = snap.docs.map((d, i) => {
+        const data = d.data();
+        const isMe = d.id === myUid;
+        if (isMe) myRank = i + 1;
+        const initial = (data.displayName || "?")[0];
+        const rankNo  = i < 3 ? medals[i] : (i + 1).toString();
+        const noClass = i < 3 ? `g${i+1}` : "";
+        return `
+          <div class="rank-item ${isMe ? "me" : ""}">
+            <span class="rank-no ${noClass}">${rankNo}</span>
+            <div class="rank-avatar">${initial}</div>
+            <div class="rank-info">
+              <div class="rank-name">${data.displayName || "匿名"}${isMe ? " <span style='font-size:11px;color:var(--c-primary);'>（あなた）</span>" : ""}</div>
+              <div class="rank-meta">累計スコア</div>
+            </div>
+            <div class="rank-score-area">
+              <div class="rank-score">${(data.totalScore || 0).toLocaleString()}</div>
+              <div class="rank-score-lbl">pt</div>
+            </div>
+          </div>`;
+      });
+
+      el.innerHTML = rows.join("");
+
+      // マイバナー更新
+      if (myRank && currentUser) {
+        const myData = snap.docs.find(d => d.id === myUid)?.data();
+        document.getElementById("my-rank").textContent = `現在 ${myRank}位`;
+        document.getElementById("my-score").textContent = (myData?.totalScore || 0).toLocaleString() + "pt";
+        document.getElementById("my-name").textContent = currentUser.displayName || "あなた";
+        document.getElementById("my-banner").style.display = "flex";
+      }
+
+    } catch(e) {
+      el.innerHTML = `<div class="rank-loading" style="color:var(--c-sen)">読み込みに失敗しました。再読み込みしてください。</div>`;
+    }
+  }
+
+  // ============================================================
+  //  起動
+  // ============================================================
+  (async () => {
+    currentUser = await getCurrentUser();
+    if (!currentUser) {
+      document.getElementById("login-cta").style.display = "block";
+    }
+    loadRanking();
+  })();
+</script>
+
+</body>
+</html>

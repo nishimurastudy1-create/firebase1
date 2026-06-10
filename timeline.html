@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年表 — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .page-layout { display: grid; grid-template-columns: 230px 1fr; min-height: calc(100vh - 52px); }
+
+    /* サイドバー */
+    .sidebar {
+      background: var(--c-surface);
+      border-right: 1px solid var(--c-border-lt);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+      position: sticky;
+      top: 52px;
+      height: calc(100vh - 52px);
+    }
+    .sb-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--c-text-3);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .sb-divider { height: 1px; background: var(--c-border-lt); }
+
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 9px;
+      border-radius: var(--r-md);
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--c-text-2);
+      user-select: none;
+      transition: background var(--dur);
+    }
+    .filter-chip:hover { background: var(--c-bg); }
+    .filter-chip.on { background: var(--c-primary-lt); color: var(--c-primary-dk); font-weight: 500; }
+    .chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-sekai { background: #1565C0; }
+    .dot-nihon { background: #B45309; }
+    .dot-sei { background: var(--c-sei); }
+    .dot-gai { background: var(--c-gai); }
+    .dot-sen { background: var(--c-sen); }
+    .dot-sha { background: var(--c-sha); }
+    .dot-kei { background: var(--c-kei); }
+
+    .pill-group { display: flex; flex-wrap: wrap; gap: 5px; }
+    .pill {
+      font-size: 11px; padding: 3px 10px;
+      border-radius: 99px;
+      cursor: pointer;
+      border: 1px solid var(--c-border);
+      color: var(--c-text-2);
+      background: transparent;
+      transition: all var(--dur);
+      user-select: none;
+    }
+    .pill:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .pill.on { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-lt); }
+
+    .sort-group { display: flex; flex-direction: column; gap: 4px; }
+    .sort-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 9px;
+      border-radius: var(--r-md);
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--c-text-2);
+      background: none; border: none;
+      width: 100%; text-align: left;
+      transition: background var(--dur);
+    }
+    .sort-btn:hover { background: var(--c-bg); }
+    .sort-btn.on { background: var(--c-primary-lt); color: var(--c-primary-dk); font-weight: 500; }
+
+    .export-group { display: flex; flex-direction: column; gap: 6px; }
+    .export-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 11px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      background: var(--c-bg);
+      font-size: 12px;
+      color: var(--c-text-2);
+      cursor: pointer;
+      transition: all var(--dur);
+      font-family: var(--font-ja);
+    }
+    .export-btn:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .export-btn .lock { margin-left: auto; font-size: 13px; }
+
+    /* メインコンテンツ */
+    .content { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .content-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .content-title { font-family: var(--font-serif); font-size: 17px; font-weight: 700; }
+    .content-meta { font-size: 12px; color: var(--c-text-3); }
+
+    .search-row { display: flex; gap: 8px; }
+    .search-row input {
+      flex: 1; font-size: 13px; padding: 8px 13px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      color: var(--c-text);
+    }
+    .search-row input:focus { outline: none; border-color: var(--c-primary); }
+
+    /* アクティブフィルタータグ */
+    .active-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+    .active-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; padding: 3px 8px;
+      border-radius: 99px;
+      background: var(--c-primary-lt);
+      color: var(--c-primary-dk);
+    }
+    .active-tag button { background: none; border: none; font-size: 13px; cursor: pointer; color: inherit; padding: 0; line-height: 1; }
+
+    /* テーブル */
+    .tbl-wrap {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--c-text-3);
+      background: var(--c-surface-2);
+      border-bottom: 1px solid var(--c-border-lt);
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--c-border-lt); cursor: pointer; transition: background var(--dur); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--c-bg); }
+    tbody tr.expanded { background: var(--c-primary-lt); }
+    td { padding: 10px 12px; vertical-align: middle; }
+    .td-year { font-family: var(--font-mono); font-size: 12px; color: var(--c-primary); font-weight: 500; white-space: nowrap; }
+    .td-event { font-size: 12px; color: var(--c-text); line-height: 1.4; }
+    .td-mnemonic { font-size: 11px; color: var(--c-text-2); line-height: 1.4; }
+
+    /* 詳細ドロワー */
+    .detail-row { display: none; }
+    .detail-row.open { display: table-row; }
+    .detail-cell {
+      padding: 16px 20px;
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border-lt);
+    }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .detail-field label { font-size: 11px; color: var(--c-text-3); display: block; margin-bottom: 4px; }
+    .detail-field p { font-size: 13px; color: var(--c-text); line-height: 1.5; }
+    .detail-field.full { grid-column: 1/-1; }
+
+    /* ローディング */
+    .tbl-loading { text-align: center; padding: 48px; color: var(--c-text-3); }
+
+    @media (max-width: 768px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; position: static; height: auto; }
+      .sidebar.mobile-open { display: flex; position: fixed; top: 52px; left: 0; right: 0; z-index: 98; max-height: calc(100vh - 52px); overflow-y: auto; }
+      .filter-toggle-btn { display: flex; }
+    }
+    .filter-toggle-btn {
+      display: none;
+      align-items: center; gap: 6px;
+      padding: 7px 13px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      font-size: 13px; color: var(--c-text-2);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="page-layout">
+
+  <!-- サイドバー -->
+  <aside class="sidebar" id="sidebar" aria-label="フィルター">
+
+    <div>
+      <div class="sb-label">地域</div>
+      <div class="filter-group">
+        <div class="filter-chip on" data-filter="region" data-value="世界">
+          <span class="chip-dot dot-sekai"></span>世界史
+        </div>
+        <div class="filter-chip on" data-filter="region" data-value="日本">
+          <span class="chip-dot dot-nihon"></span>日本史
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sb-label">分野</div>
+      <div class="filter-group">
+        <div class="filter-chip on" data-filter="field" data-value="政"><span class="chip-dot dot-sei"></span>政治</div>
+        <div class="filter-chip on" data-filter="field" data-value="外"><span class="chip-dot dot-gai"></span>外交</div>
+        <div class="filter-chip on" data-filter="field" data-value="戦"><span class="chip-dot dot-sen"></span>戦争・反乱</div>
+        <div class="filter-chip on" data-filter="field" data-value="社"><span class="chip-dot dot-sha"></span>社会・文化</div>
+        <div class="filter-chip on" data-filter="field" data-value="経"><span class="chip-dot dot-kei"></span>経済・技術</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sb-label">重要度</div>
+      <div class="pill-group">
+        <div class="pill on" data-filter="importance" data-value="S">S</div>
+        <div class="pill on" data-filter="importance" data-value="A">A</div>
+        <div class="pill on" data-filter="importance" data-value="B">B</div>
+        <div class="pill on" data-filter="importance" data-value="C">C</div>
+        <div class="pill" data-filter="importance" data-value="D">D</div>
+        <div class="pill" data-filter="importance" data-value="E">E</div>
+        <div class="pill" id="pill-teiki" data-filter="teiki" data-value="1" style="border-color:var(--c-primary);color:var(--c-primary)">定期テスト</div>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div>
+      <div class="sb-label">並び替え</div>
+      <div class="sort-group">
+        <button class="sort-btn on" data-sort="asc"><i class="ti ti-arrow-up"></i>古い順</button>
+        <button class="sort-btn" data-sort="desc"><i class="ti ti-arrow-down"></i>新しい順</button>
+        <button class="sort-btn" data-sort="imp"><i class="ti ti-star"></i>重要度順</button>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div>
+      <div class="sb-label">出力</div>
+      <div class="export-group">
+        <button class="export-btn" id="btn-print"><i class="ti ti-printer"></i>印刷<i class="ti ti-lock lock" id="lock-print"></i></button>
+        <button class="export-btn" id="btn-csv"><i class="ti ti-file-download"></i>CSVで保存<i class="ti ti-lock lock" id="lock-csv"></i></button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <main class="content">
+    <div class="content-header">
+      <div>
+        <div class="content-title" id="tl-title">年表を読み込み中...</div>
+        <div class="content-meta" id="tl-meta"></div>
+      </div>
+      <button class="filter-toggle-btn" id="filter-toggle-btn"><i class="ti ti-filter"></i>絞り込み</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="出来事・語呂合わせで検索..." aria-label="検索">
+      <button class="btn btn-ghost" id="search-btn"><i class="ti ti-search"></i>検索</button>
+    </div>
+
+    <div class="active-tags" id="active-tags"></div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>年代</th>
+            <th>地域</th>
+            <th>分野</th>
+            <th>出来事</th>
+            <th>重要度</th>
+            <th>語呂合わせ</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body">
+          <tr><td colspan="6" class="tbl-loading"><div class="spinner" style="margin:0 auto 10px"></div>読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </main>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, initMobileNav, renderTopbar, renderFooter, toast } from "./js/firebase.js";
+  import { initAuthUI, getCurrentUser } from "./js/auth.js";
+  import { db } from "./js/firebase.js";
+  import {
+    collection, getDocs, query, where, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("年表");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+  initMobileNav();
+  initAuthUI();
+
+  // ============================================================
+  //  状態
+  // ============================================================
+  const IMP_ORDER = { S:0, A:1, B:2, C:3, D:4, E:5 };
+  let allEvents   = [];
+  let filtered    = [];
+  let currentPage = 1;
+  const PER_PAGE  = 30;
+
+  let state = {
+    regions:     new Set(["世界","日本"]),
+    fields:      new Set(["政","外","戦","社","経"]),
+    importances: new Set(["S","A","B","C"]),
+    teiki:       false,
+    sort:        "asc",
+    search:      "",
+  };
+
+  // ============================================================
+  //  データ取得
+  // ============================================================
+  async function loadEvents() {
+    const params = new URLSearchParams(location.search);
+    const timelineId = params.get("id") || "timeline_01";
+
+    try {
+      const q    = query(collection(db, "events"), where("timelineId","==", timelineId));
+      const snap = await getDocs(q);
+      allEvents  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // タイトル表示
+      const tlSnap = await getDocs(collection(db, "timelines"));
+      const tl = tlSnap.docs.find(d => d.id === timelineId);
+      document.getElementById("tl-title").textContent = tl ? tl.data().title : "年表";
+
+      applyFilters();
+    } catch(e) {
+      document.getElementById("tbl-body").innerHTML =
+        `<tr><td colspan="6" class="tbl-loading" style="color:var(--c-sen)">読み込みに失敗しました。再読み込みしてください。</td></tr>`;
+    }
+  }
+
+  // ============================================================
+  //  フィルター & ソート
+  // ============================================================
+  function applyFilters() {
+    const q = state.search.toLowerCase();
+
+    filtered = allEvents.filter(e => {
+      if (!state.regions.has(e.region)) return false;
+      if (!state.fields.has(e.field)) return false;
+      if (state.teiki) {
+        if (!["S","A","B","C"].includes(e.importance)) return false;
+      } else {
+        if (!state.importances.has(e.importance)) return false;
+      }
+      if (q && !(e.event.toLowerCase().includes(q) || (e.mnemonic||"").toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    // ソート
+    filtered.sort((a, b) => {
+      if (state.sort === "asc")  return a.yearNum - b.yearNum;
+      if (state.sort === "desc") return b.yearNum - a.yearNum;
+      if (state.sort === "imp")  return (IMP_ORDER[a.importance]||5) - (IMP_ORDER[b.importance]||5);
+      return 0;
+    });
+
+    currentPage = 1;
+    renderTable();
+    renderPagination();
+    renderActiveTags();
+    document.getElementById("tl-meta").textContent = `${filtered.length}件表示中（全${allEvents.length}件）`;
+  }
+
+  // ============================================================
+  //  テーブル描画
+  // ============================================================
+  const FIELD_LABELS = { 政:"政治", 外:"外交", 戦:"戦争・反乱", 社:"社会・文化", 経:"経済・技術" };
+  const REGION_LABELS = { 世界:"世界史", 日本:"日本史" };
+
+  function renderTable() {
+    const tbody = document.getElementById("tbl-body");
+    const start = (currentPage - 1) * PER_PAGE;
+    const page  = filtered.slice(start, start + PER_PAGE);
+
+    if (page.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="tbl-loading">条件に一致する出来事がありません</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = page.map((e, i) => `
+      <tr data-idx="${start + i}" onclick="toggleDetail(this, ${start + i})">
+        <td class="td-year">${e.year}</td>
+        <td><span class="badge badge-${e.region === "世界" ? "sekai" : "nihon"}">${e.region === "世界" ? "世界" : "日本"}</span></td>
+        <td><span class="badge badge-${fieldClass(e.field)}">${e.field}</span></td>
+        <td class="td-event">${e.event}</td>
+        <td><span class="imp imp-${e.importance}">${e.importance}</span></td>
+        <td class="td-mnemonic">${e.mnemonic || "—"}</td>
+      </tr>
+      <tr class="detail-row" id="detail-${start + i}">
+        <td colspan="6" class="detail-cell">
+          <div class="detail-grid">
+            <div class="detail-field"><label>地域</label><p><span class="badge badge-${e.region === "世界" ? "sekai" : "nihon"}">${REGION_LABELS[e.region] || e.region}</span></p></div>
+            <div class="detail-field"><label>分野</label><p><span class="badge badge-${fieldClass(e.field)}">${FIELD_LABELS[e.field] || e.field}</span></p></div>
+            <div class="detail-field"><label>重要度</label><p><span class="imp imp-${e.importance}" style="font-size:16px">${e.importance}</span></p></div>
+            <div class="detail-field"><label>語呂合わせ</label><p>${e.mnemonic || "—"}</p></div>
+            ${e.note ? `<div class="detail-field full"><label>補足事項</label><p>${e.note}</p></div>` : ""}
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function fieldClass(f) {
+    return { 政:"sei", 外:"gai", 戦:"sen", 社:"sha", 経:"kei" }[f] || "";
+  }
+
+  // グローバルに公開（onclick用）
+  window.toggleDetail = function(row, idx) {
+    const detail = document.getElementById(`detail-${idx}`);
+    if (!detail) return;
+    const isOpen = detail.classList.contains("open");
+    // 他を閉じる
+    document.querySelectorAll(".detail-row.open").forEach(r => r.classList.remove("open"));
+    document.querySelectorAll("tbody tr.expanded").forEach(r => r.classList.remove("expanded"));
+    if (!isOpen) {
+      detail.classList.add("open");
+      row.classList.add("expanded");
+    }
+  };
+
+  // ============================================================
+  //  ページネーション
+  // ============================================================
+  function renderPagination() {
+    const total = Math.ceil(filtered.length / PER_PAGE);
+    const el = document.getElementById("pagination");
+    if (total <= 1) { el.innerHTML = ""; return; }
+
+    let html = `<button class="pg-btn" onclick="goPage(${currentPage - 1})" ${currentPage===1?"disabled":""}><i class="ti ti-chevron-left"></i></button>`;
+    for (let i = 1; i <= total; i++) {
+      if (i === 1 || i === total || Math.abs(i - currentPage) <= 1) {
+        html += `<button class="pg-btn ${i===currentPage?"active":""}" onclick="goPage(${i})">${i}</button>`;
+      } else if (Math.abs(i - currentPage) === 2) {
+        html += `<span style="padding:0 4px;color:var(--c-text-3);font-size:13px">…</span>`;
+      }
+    }
+    html += `<button class="pg-btn" onclick="goPage(${currentPage + 1})" ${currentPage===total?"disabled":""}><i class="ti ti-chevron-right"></i></button>`;
+    el.innerHTML = html;
+  }
+
+  window.goPage = function(p) {
+    const total = Math.ceil(filtered.length / PER_PAGE);
+    if (p < 1 || p > total) return;
+    currentPage = p;
+    renderTable();
+    renderPagination();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ============================================================
+  //  アクティブタグ
+  // ============================================================
+  function renderActiveTags() {
+    const el = document.getElementById("active-tags");
+    const tags = [];
+    if (state.search) tags.push({ label: `"${state.search}"`, key: "search" });
+    if (state.teiki) tags.push({ label: "定期テスト範囲", key: "teiki" });
+    el.innerHTML = tags.map(t =>
+      `<span class="active-tag">${t.label}<button onclick="removeTag('${t.key}')" aria-label="削除">×</button></span>`
+    ).join("");
+  }
+
+  window.removeTag = function(key) {
+    if (key === "search") { state.search = ""; document.getElementById("search-input").value = ""; }
+    if (key === "teiki")  { state.teiki = false; document.getElementById("pill-teiki").classList.remove("on"); }
+    applyFilters();
+  };
+
+  // ============================================================
+  //  フィルターイベント
+  // ============================================================
+  document.querySelectorAll("[data-filter='region']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.regions.has(v) ? state.regions.delete(v) : state.regions.add(v);
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll("[data-filter='field']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.fields.has(v) ? state.fields.delete(v) : state.fields.add(v);
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll("[data-filter='importance']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.importances.has(v) ? state.importances.delete(v) : state.importances.add(v);
+      applyFilters();
+    });
+  });
+
+  document.getElementById("pill-teiki").addEventListener("click", function() {
+    state.teiki = !state.teiki;
+    this.classList.toggle("on", state.teiki);
+    applyFilters();
+  });
+
+  document.querySelectorAll("[data-sort]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-sort]").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      state.sort = btn.dataset.sort;
+      applyFilters();
+    });
+  });
+
+  document.getElementById("search-input").addEventListener("input", e => {
+    state.search = e.target.value.trim();
+    applyFilters();
+  });
+
+  // モバイルフィルタートグル
+  document.getElementById("filter-toggle-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("mobile-open");
+  });
+
+  // ============================================================
+  //  出力ボタン（ログイン必須）
+  // ============================================================
+  async function initExport() {
+    const user = await getCurrentUser();
+    if (user) {
+      document.getElementById("lock-print").style.display = "none";
+      document.getElementById("lock-csv").style.display   = "none";
+      document.getElementById("btn-print").addEventListener("click", () => window.print());
+      document.getElementById("btn-csv").addEventListener("click", exportCsv);
+    } else {
+      document.getElementById("btn-print").addEventListener("click", () => {
+        toast("印刷機能はログインが必要です", "error");
+        location.href = "login.html";
+      });
+      document.getElementById("btn-csv").addEventListener("click", () => {
+        toast("ダウンロードはログインが必要です", "error");
+        location.href = "login.html";
+      });
+    }
+  }
+
+  function exportCsv() {
+    const header = ["年代","地域","分野","出来事","重要度","語呂合わせ","補足事項"];
+    const rows = filtered.map(e => [
+      e.year, e.region, e.field, e.event, e.importance, e.mnemonic||"", e.note||""
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "timeline.csv";
+    a.click();
+    toast("CSVをダウンロードしました", "success");
+  }
+
+  // ============================================================
+  //  起動
+  // ============================================================
+  initExport();
+  loadEvents();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    body { background: var(--c-bg); }
+
+    .quiz-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ヘッダー行 */
+    .q-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .btn-quit {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      font-size: 12px; color: var(--c-text-2);
+      cursor: pointer;
+      transition: all var(--dur);
+    }
+    .btn-quit:hover { border-color: var(--c-sen); color: var(--c-sen); }
+
+    /* スコアチップ */
+    .score-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .score-chip {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-lg);
+      padding: 10px 12px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .sc-val { font-size: 20px; font-weight: 700; color: var(--c-primary); }
+    .sc-val.wrong { color: var(--c-sen); }
+    .sc-lbl { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    /* プログレスバー */
+    .progress-area { display: flex; flex-direction: column; gap: 6px; }
+    .progress-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--c-text-2);
+    }
+    .timer-display {
+      display: flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 14px; font-weight: 500;
+      color: var(--c-text);
+    }
+    .timer-display i { color: var(--c-primary); }
+    .progress-bar-bg {
+      height: 7px;
+      background: var(--c-surface-2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--c-primary), var(--c-accent));
+      border-radius: 99px;
+      transition: width .4s var(--ease);
+    }
+
+    /* 問題カード */
+    .q-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      padding: 24px 28px;
+      box-shadow: var(--shadow-md);
+    }
+    .q-meta {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .q-type-badge {
+      font-size: 11px; padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--c-primary-lt);
+      color: var(--c-primary-dk);
+      font-weight: 500;
+    }
+    .q-no { font-size: 12px; color: var(--c-text-3); }
+    .q-text {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--c-text);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    /* ヒントボタン */
+    .hint-row { margin-top: 4px; }
+    .btn-hint {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      border-radius: var(--r-md);
+      border: 1px dashed var(--c-border);
+      background: transparent;
+      font-size: 12px; color: var(--c-text-2);
+      cursor: pointer;
+      transition: all var(--dur);
+    }
+    .btn-hint:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .hint-text {
+      display: none;
+      font-size: 12px; color: var(--c-text-2);
+      padding: 8px 12px;
+      border-radius: var(--r-md);
+      background: var(--c-surface-2);
+      margin-top: 8px;
+      border-left: 3px solid var(--c-primary);
+    }
+    .hint-text.show { display: block; }
+
+    /* 選択肢 */
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .choice {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      border-radius: var(--r-lg);
+      border: 1.5px solid var(--c-border);
+      background: var(--c-surface);
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--c-text);
+      transition: all var(--dur);
+      font-family: var(--font-ja);
+      line-height: 1.4;
+    }
+    .choice:hover:not(:disabled) { border-color: var(--c-primary); background: var(--c-primary-lt); }
+    .choice:disabled { cursor: default; }
+    .choice.correct { border-color: var(--c-primary); background: var(--c-primary-lt); color: var(--c-primary-dk); }
+    .choice.wrong   { border-color: var(--c-sen); background: #fde8e8; color: #7a1e1e; }
+    .choice-key {
+      width: 26px; height: 26px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
+      transition: all var(--dur);
+    }
+    .choice.correct .choice-key { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+    .choice.wrong   .choice-key { background: var(--c-sen); border-color: var(--c-sen); color: #fff; }
+
+    /* フィードバック */
+    .feedback {
+      display: none;
+      align-items: flex-start; gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--r-lg);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .feedback.show { display: flex; }
+    .feedback.correct-fb { background: var(--c-primary-lt); border-left: 4px solid var(--c-primary); color: var(--c-primary-dk); }
+    .feedback.wrong-fb   { background: #fde8e8; border-left: 4px solid var(--c-sen); color: #5a1515; }
+    .feedback i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ナビ */
+    .q-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn-next {
+      display: flex; align-items: center; gap: 7px;
+      padding: 11px 28px;
+      border-radius: var(--r-lg);
+      background: var(--c-primary);
+      color: #fff; border: none;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(29,158,117,.3);
+      transition: all var(--dur);
+    }
+    .btn-next:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-next:disabled { opacity: .4; cursor: default; transform: none; }
+
+    @media (max-width: 600px) {
+      .choices { grid-template-columns: 1fr; }
+      .score-row { grid-template-columns: repeat(2, 1fr); }
+      .q-text { font-size: 17px; }
+      .q-card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="quiz-wrap">
+
+  <!-- ヘッダー -->
+  <div class="q-header">
+    <div style="font-family:var(--font-serif);font-size:16px;font-weight:700;color:var(--c-text)">
+      <i class="ti ti-puzzle" style="color:var(--c-primary)"></i> クイズ
+    </div>
+    <button class="btn-quit" onclick="confirmQuit()">
+      <i class="ti ti-x"></i>中断する
+    </button>
+  </div>
+
+  <!-- スコア行 -->
+  <div class="score-row">
+    <div class="score-chip">
+      <div class="sc-val" id="sc-correct">0</div>
+      <div class="sc-lbl">正解</div>
+    </div>
+    <div class="score-chip">
+      <div class="sc-val wrong" id="sc-wrong">0</div>
+      <div class="sc-lbl">不正解</div>
+    </div>
+    <div class="score-chip">
+      <div class="sc-val" id="sc-remain">—</div>
+      <div class="sc-lbl">残り</div>
+    </div>
+    <div class="score-chip">
+      <div class="sc-val" id="sc-score">0</div>
+      <div class="sc-lbl">スコア</div>
+    </div>
+  </div>
+
+  <!-- プログレス -->
+  <div class="progress-area">
+    <div class="progress-top">
+      <span id="progress-text">0 / 0問</span>
+      <div class="timer-display">
+        <i class="ti ti-clock"></i>
+        <span id="timer-val">0:00</span>
+      </div>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 問題カード -->
+  <div class="q-card">
+    <div class="q-meta">
+      <span class="q-type-badge" id="q-type-badge">—</span>
+      <span class="q-no" id="q-no">第1問</span>
+    </div>
+    <div class="q-text" id="q-text">読み込み中...</div>
+    <div class="hint-row">
+      <button class="btn-hint" id="btn-hint" onclick="showHint()">
+        <i class="ti ti-bulb"></i>ヒントを見る
+      </button>
+      <div class="hint-text" id="hint-text"></div>
+    </div>
+  </div>
+
+  <!-- 選択肢 -->
+  <div class="choices" id="choices"></div>
+
+  <!-- フィードバック -->
+  <div class="feedback" id="feedback">
+    <i class="ti ti-info-circle"></i>
+    <span id="feedback-text"></span>
+  </div>
+
+  <!-- ナビ -->
+  <div class="q-nav">
+    <div style="font-size:12px;color:var(--c-text-3)" id="nav-hint"></div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()" disabled>
+      次の問題 <i class="ti ti-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, renderTopbar, renderFooter, toast } from "./js/firebase.js";
+  import { getCurrentUser } from "./js/auth.js";
+  import { db } from "./js/firebase.js";
+  import {
+    doc, updateDoc, increment, collection, addDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("クイズ");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+
+  // ============================================================
+  //  データ読み込み
+  // ============================================================
+  const questions = JSON.parse(sessionStorage.getItem("quiz_questions") || "[]");
+  const settings  = JSON.parse(sessionStorage.getItem("quiz_settings") || "{}");
+
+  if (questions.length === 0) {
+    location.href = "quiz-select.html";
+  }
+
+  const QUIZ_TYPE_LABELS = {
+    year_to_event:      "年号 → 出来事",
+    mnemonic_to_event:  "語呂合わせ → 出来事",
+    event_to_year:      "出来事 → 年号",
+    year_to_mnemonic:   "年号 → 語呂合わせ",
+    event_to_mnemonic:  "出来事 → 語呂合わせ",
+  };
+
+  // ============================================================
+  //  状態
+  // ============================================================
+  let currentIdx  = 0;
+  let correct     = 0;
+  let wrong       = 0;
+  let score       = 0;
+  let answered    = false;
+  let timerSec    = 0;
+  let timerInt    = null;
+  let questionStartTime = Date.now();
+  const results   = [];     // 各問の結果を記録
+
+  // ============================================================
+  //  タイマー
+  // ============================================================
+  function startTimer() {
+    timerInt = setInterval(() => {
+      timerSec++;
+      const m = Math.floor(timerSec / 60);
+      const s = timerSec % 60;
+      document.getElementById("timer-val").textContent = `${m}:${s.toString().padStart(2,"0")}`;
+    }, 1000);
+  }
+
+  // ============================================================
+  //  問題文・ヒント生成
+  // ============================================================
+  function getQuestionText(e, type) {
+    switch(type) {
+      case "year_to_event":     return `${e.year} 年に起きた出来事は？`;
+      case "mnemonic_to_event": return `「${e.mnemonic}」に対応する出来事は？`;
+      case "event_to_year":     return `「${e.event}」はいつの出来事？`;
+      case "year_to_mnemonic":  return `${e.year} に対応する語呂合わせは？`;
+      case "event_to_mnemonic": return `「${e.event}」の語呂合わせは？`;
+    }
+  }
+
+  function getAnswerText(e, type) {
+    switch(type) {
+      case "year_to_event":
+      case "mnemonic_to_event":  return e.event;
+      case "event_to_year":      return e.year;
+      case "year_to_mnemonic":
+      case "event_to_mnemonic":  return e.mnemonic || e.event;
+    }
+  }
+
+  function getHintText(e, type) {
+    switch(type) {
+      case "year_to_event":     return e.mnemonic ? `語呂合わせ：${e.mnemonic}` : "";
+      case "mnemonic_to_event": return `年号：${e.year}`;
+      case "event_to_year":     return e.mnemonic ? `語呂合わせ：${e.mnemonic}` : "";
+      case "year_to_mnemonic":  return e.note ? `補足：${e.note}` : "";
+      case "event_to_mnemonic": return `年号：${e.year}`;
+    }
+  }
+
+  // ============================================================
+  //  ダミー選択肢生成
+  // ============================================================
+  function generateChoices(correct, allQ, type) {
+    const correctAnswer = getAnswerText(correct, type);
+    const pool = allQ
+      .filter(e => getAnswerText(e, type) !== correctAnswer)
+      .sort(() => Math.random() - .5)
+      .slice(0, 3)
+      .map(e => getAnswerText(e, type));
+
+    const choices = [...pool, correctAnswer].sort(() => Math.random() - .5);
+    return choices;
+  }
+
+  // ============================================================
+  //  問題描画
+  // ============================================================
+  function renderQuestion() {
+    if (currentIdx >= questions.length) { endQuiz(); return; }
+
+    answered = false;
+    questionStartTime = Date.now();
+    const e    = questions[currentIdx];
+    const type = settings.quizType;
+
+    document.getElementById("q-type-badge").textContent = QUIZ_TYPE_LABELS[type] || type;
+    document.getElementById("q-no").textContent = `第${currentIdx + 1}問`;
+    document.getElementById("q-text").textContent = getQuestionText(e, type);
+
+    // ヒント
+    const hintText = getHintText(e, type);
+    document.getElementById("btn-hint").style.display = hintText ? "inline-flex" : "none";
+    document.getElementById("hint-text").textContent  = hintText;
+    document.getElementById("hint-text").classList.remove("show");
+
+    // フィードバック非表示
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback";
+    fb.classList.remove("show");
+
+    // 次へボタン無効化
+    document.getElementById("btn-next").disabled = true;
+    document.getElementById("nav-hint").textContent = "選択肢を選んでください";
+
+    // プログレス更新
+    const prog = currentIdx / questions.length * 100;
+    document.getElementById("progress-fill").style.width = prog + "%";
+    document.getElementById("progress-text").textContent = `${currentIdx + 1} / ${questions.length}問`;
+    document.getElementById("sc-remain").textContent = questions.length - currentIdx;
+
+    // 選択肢描画
+    const choices = generateChoices(e, questions, type);
+    const keys    = ["A","B","C","D"];
+    document.getElementById("choices").innerHTML = choices.map((c, i) => `
+      <button class="choice" data-answer="${c}" onclick="selectAnswer(this, '${c.replace(/'/g,"\\'")}')">
+        <span class="choice-key">${keys[i]}</span>${c}
+      </button>
+    `).join("");
+  }
+
+  // ============================================================
+  //  回答選択
+  // ============================================================
+  window.selectAnswer = function(btn, selected) {
+    if (answered) return;
+    answered = true;
+
+    const e             = questions[currentIdx];
+    const type          = settings.quizType;
+    const correctAnswer = getAnswerText(e, type);
+    const isCorrect     = selected === correctAnswer;
+    const elapsed       = Math.round((Date.now() - questionStartTime) / 1000);
+
+    // ボタンの色付け
+    document.querySelectorAll(".choice").forEach(c => {
+      c.disabled = true;
+      if (c.dataset.answer === correctAnswer) c.classList.add("correct");
+      else if (c === btn && !isCorrect)        c.classList.add("wrong");
+    });
+
+    // フィードバック
+    const fb = document.getElementById("feedback");
+    const fbText = document.getElementById("feedback-text");
+    if (isCorrect) {
+      fb.className = "feedback correct-fb show";
+      fb.querySelector("i").className = "ti ti-circle-check";
+      fbText.textContent = `正解！${e.note ? "　" + e.note : ""}`;
+    } else {
+      fb.className = "feedback wrong-fb show";
+      fb.querySelector("i").className = "ti ti-circle-x";
+      fbText.textContent = `不正解。正解は「${correctAnswer}」です。${e.note ? "　" + e.note : ""}`;
+    }
+
+    // スコア計算
+    if (isCorrect) {
+      correct++;
+      const timeBonus = Math.max(0, 10 - elapsed);
+      const impBonus = { S:5, A:4, B:3, C:2, D:1, E:1 }[e.importance] || 1;
+      score += 100 + timeBonus * 10 + impBonus * 20;
+    } else {
+      wrong++;
+    }
+
+    // 表示更新
+    document.getElementById("sc-correct").textContent = correct;
+    document.getElementById("sc-wrong").textContent   = wrong;
+    document.getElementById("sc-score").textContent   = score.toLocaleString();
+
+    // 結果記録
+    results.push({ event: e.event, year: e.year, isCorrect, elapsed, importance: e.importance });
+
+    // 次へボタン
+    const btnNext = document.getElementById("btn-next");
+    btnNext.disabled = false;
+    if (currentIdx === questions.length - 1) {
+      btnNext.innerHTML = `結果を見る <i class="ti ti-flag"></i>`;
+    }
+    document.getElementById("nav-hint").textContent = "";
+  };
+
+  // ============================================================
+  //  ヒント表示
+  // ============================================================
+  window.showHint = function() {
+    document.getElementById("hint-text").classList.toggle("show");
+  };
+
+  // ============================================================
+  //  次の問題
+  // ============================================================
+  window.nextQuestion = function() {
+    currentIdx++;
+    renderQuestion();
+  };
+
+  // ============================================================
+  //  中断確認
+  // ============================================================
+  window.confirmQuit = function() {
+    if (confirm("クイズを中断しますか？")) {
+      clearInterval(timerInt);
+      location.href = "quiz-select.html";
+    }
+  };
+
+  // ============================================================
+  //  終了処理
+  // ============================================================
+  async function endQuiz() {
+    clearInterval(timerInt);
+
+    const user = await getCurrentUser();
+
+    // Firestoreにスコア保存
+    if (user) {
+      try {
+        await addDoc(collection(db, "scores"), {
+          uid:       user.uid,
+          score,
+          correct,
+          wrong,
+          total:     questions.length,
+          quizType:  settings.quizType,
+          elapsedSec: timerSec,
+          ranking:   settings.ranking || false,
+          createdAt: serverTimestamp(),
+        });
+
+        // ユーザー統計を更新
+        await updateDoc(doc(db, "users", user.uid), {
+          totalScore:   increment(score),
+          totalCorrect: increment(correct),
+          totalAnswered: increment(questions.length),
+        });
+
+        // ランキング参加中なら集計を更新
+        if (settings.ranking) {
+          const rankRef = doc(db, "rankings", user.uid);
+          await updateDoc(rankRef, {
+            totalScore:  increment(score),
+            displayName: user.displayName || "匿名",
+          }).catch(async () => {
+            // ドキュメントがなければ作成
+            const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+            await setDoc(rankRef, {
+              totalScore:  score,
+              displayName: user.displayName || "匿名",
+              uid:         user.uid,
+            });
+          });
+        }
+      } catch(e) {
+        console.error("スコア保存エラー", e);
+      }
+    }
+
+    // 結果画面へ
+    sessionStorage.setItem("quiz_results", JSON.stringify({
+      score, correct, wrong,
+      total:    questions.length,
+      elapsed:  timerSec,
+      quizType: settings.quizType,
+      ranking:  settings.ranking,
+      results,
+    }));
+    location.href = "quiz-result.html";
+  }
+
+  // ============================================================
+  //  起動
+  // ============================================================
+  startTimer();
+  renderQuestion();
+</script>
+
+</body>
+</html>

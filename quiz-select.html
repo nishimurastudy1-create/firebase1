@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ設定 — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .page-wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
+    .page-title { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .page-sub   { font-size: 13px; color: var(--c-text-2); margin-bottom: 28px; }
+
+    .setup-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      padding: 24px 28px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .sc-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .sc-head-icon {
+      width: 36px; height: 36px;
+      border-radius: var(--r-md);
+      background: var(--c-primary-lt);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-primary); font-size: 18px; flex-shrink: 0;
+    }
+    .sc-head-title { font-size: 14px; font-weight: 500; }
+    .sc-head-sub   { font-size: 12px; color: var(--c-text-2); }
+
+    /* クイズ種類 */
+    .qt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .qt-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      border-radius: var(--r-lg);
+      border: 1.5px solid var(--c-border);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--c-text-2);
+      background: var(--c-bg);
+      transition: all var(--dur);
+      user-select: none;
+    }
+    .qt-item:hover { border-color: var(--c-primary); color: var(--c-text); }
+    .qt-item.on { border-color: var(--c-primary); background: var(--c-primary-lt); color: var(--c-primary-dk); font-weight: 500; }
+    .qt-item i { font-size: 18px; flex-shrink: 0; }
+    .qt-radio {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--c-border);
+      margin-left: auto; flex-shrink: 0;
+      transition: all var(--dur);
+    }
+    .qt-item.on .qt-radio { border-color: var(--c-primary); background: var(--c-primary); }
+
+    /* フィルター */
+    .pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      font-size: 12px; padding: 4px 12px;
+      border-radius: 99px;
+      cursor: pointer;
+      border: 1px solid var(--c-border);
+      color: var(--c-text-2);
+      background: transparent;
+      transition: all var(--dur); user-select: none;
+    }
+    .pill:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .pill.on { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-lt); }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--c-border);
+      cursor: pointer; font-size: 12px;
+      color: var(--c-text-2); background: var(--c-bg);
+      transition: all var(--dur); user-select: none;
+    }
+    .chip:hover { border-color: var(--c-primary); }
+    .chip.on { border-color: var(--c-primary); background: var(--c-primary-lt); color: var(--c-primary-dk); font-weight: 500; }
+    .chip-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+    /* 問題数スライダー */
+    .count-row { display: flex; align-items: center; gap: 12px; }
+    .count-row input[type=range] {
+      flex: 1; accent-color: var(--c-primary);
+    }
+    .count-val {
+      font-size: 14px; font-weight: 500;
+      color: var(--c-primary); min-width: 36px; text-align: right;
+    }
+
+    /* ランキングトグル */
+    .ranking-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: var(--r-lg);
+      border: 1px solid var(--c-border);
+      background: var(--c-bg);
+    }
+    .rt-label { font-size: 13px; color: var(--c-text); }
+    .rt-sub   { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    /* ログインバナー */
+    .login-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-radius: var(--r-lg);
+      background: #FEF3E2;
+      border: 1px solid #f9d49e;
+      margin-bottom: 18px;
+    }
+    .login-banner i { font-size: 22px; color: #B45309; flex-shrink: 0; }
+    .lb-text { flex: 1; font-size: 13px; color: #6b3006; }
+    .lb-btn {
+      padding: 7px 14px; border-radius: var(--r-md);
+      background: #B45309; color: #fff; border: none;
+      font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap;
+    }
+
+    /* 開始ボタン */
+    .start-area { text-align: center; margin-top: 8px; }
+    .btn-start {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 48px;
+      border-radius: var(--r-xl);
+      background: var(--c-primary);
+      color: #fff; border: none;
+      font-size: 16px; font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(29,158,117,.35);
+      transition: all var(--dur);
+    }
+    .btn-start:hover { opacity: .88; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(29,158,117,.4); }
+    .btn-start:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .start-hint { font-size: 12px; color: var(--c-text-3); margin-top: 10px; }
+
+    @media (max-width: 600px) {
+      .qt-grid { grid-template-columns: 1fr; }
+      .setup-card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="page-wrap">
+  <div class="page-title">クイズ設定</div>
+  <div class="page-sub">範囲と種類を選んでクイズを始めましょう</div>
+
+  <!-- ログインバナー（未ログイン時） -->
+  <div class="login-banner" id="login-banner" style="display:none">
+    <i class="ti ti-lock"></i>
+    <div class="lb-text">ログインするとランキングへの参加・クイズ履歴の保存ができます</div>
+    <button class="lb-btn" onclick="location.href='login.html'">ログイン</button>
+  </div>
+
+  <!-- クイズの種類 -->
+  <div class="setup-card">
+    <div class="sc-head">
+      <div class="sc-head-icon"><i class="ti ti-puzzle"></i></div>
+      <div>
+        <div class="sc-head-title">クイズの種類</div>
+        <div class="sc-head-sub">1つ選んでください</div>
+      </div>
+    </div>
+    <div class="qt-grid">
+      <div class="qt-item on" data-qt="year_to_event">
+        <i class="ti ti-calendar-question"></i>
+        年号 → 出来事
+        <div class="qt-radio"></div>
+      </div>
+      <div class="qt-item" data-qt="mnemonic_to_event">
+        <i class="ti ti-music"></i>
+        語呂合わせ → 出来事
+        <div class="qt-radio"></div>
+      </div>
+      <div class="qt-item" data-qt="event_to_year">
+        <i class="ti ti-arrow-back"></i>
+        出来事 → 年号
+        <div class="qt-radio"></div>
+      </div>
+      <div class="qt-item" data-qt="year_to_mnemonic">
+        <i class="ti ti-forms"></i>
+        年号 → 語呂合わせ
+        <div class="qt-radio"></div>
+      </div>
+      <div class="qt-item" data-qt="event_to_mnemonic">
+        <i class="ti ti-transfer"></i>
+        出来事 → 語呂合わせ
+        <div class="qt-radio"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 範囲設定 -->
+  <div class="setup-card">
+    <div class="sc-head">
+      <div class="sc-head-icon"><i class="ti ti-filter"></i></div>
+      <div>
+        <div class="sc-head-title">出題範囲</div>
+        <div class="sc-head-sub">複数選択可</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <div>
+        <div style="font-size:12px;color:var(--c-text-3);margin-bottom:8px;font-weight:500">年表</div>
+        <div class="chip-row" id="tl-chips">
+          <div class="chip on" data-tl="timeline_01">① 日本と世界の近代化</div>
+          <div class="chip" style="opacity:.5;cursor:default">② 古代〜中世（準備中）</div>
+          <div class="chip" style="opacity:.5;cursor:default">③ 戦後〜現代（準備中）</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;color:var(--c-text-3);margin-bottom:8px;font-weight:500">地域</div>
+        <div class="chip-row">
+          <div class="chip on" data-filter="region" data-value="世界">
+            <span class="chip-dot" style="background:#1565C0"></span>世界史
+          </div>
+          <div class="chip on" data-filter="region" data-value="日本">
+            <span class="chip-dot" style="background:#B45309"></span>日本史
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;color:var(--c-text-3);margin-bottom:8px;font-weight:500">重要度</div>
+        <div class="pill-group">
+          <div class="pill on" data-filter="importance" data-value="S">S</div>
+          <div class="pill on" data-filter="importance" data-value="A">A</div>
+          <div class="pill on" data-filter="importance" data-value="B">B</div>
+          <div class="pill" data-filter="importance" data-value="C">C</div>
+          <div class="pill" data-filter="importance" data-value="D">D</div>
+          <div class="pill" data-filter="importance" data-value="E">E</div>
+          <div class="pill" id="pill-teiki">定期テスト（C以上）</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;color:var(--c-text-3);margin-bottom:8px;font-weight:500">分野</div>
+        <div class="chip-row">
+          <div class="chip on" data-filter="field" data-value="政"><span class="chip-dot" style="background:#4472c4"></span>政治</div>
+          <div class="chip on" data-filter="field" data-value="外"><span class="chip-dot" style="background:#7030a0"></span>外交</div>
+          <div class="chip on" data-filter="field" data-value="戦"><span class="chip-dot" style="background:#e05555"></span>戦争・反乱</div>
+          <div class="chip on" data-filter="field" data-value="社"><span class="chip-dot" style="background:#c49a00"></span>社会・文化</div>
+          <div class="chip on" data-filter="field" data-value="経"><span class="chip-dot" style="background:#3a9a4a"></span>経済・技術</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 問題数 -->
+  <div class="setup-card">
+    <div class="sc-head">
+      <div class="sc-head-icon"><i class="ti ti-list-numbers"></i></div>
+      <div>
+        <div class="sc-head-title">問題数</div>
+        <div class="sc-head-sub">最大は選択した範囲の件数になります</div>
+      </div>
+    </div>
+    <div class="count-row">
+      <input type="range" id="count-slider" min="5" max="50" step="5" value="20">
+      <div class="count-val"><span id="count-display">20</span>問</div>
+    </div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="setup-card" id="ranking-card">
+    <div class="sc-head">
+      <div class="sc-head-icon"><i class="ti ti-trophy"></i></div>
+      <div>
+        <div class="sc-head-title">ランキング参加</div>
+        <div class="sc-head-sub">ログインが必要です</div>
+      </div>
+    </div>
+    <div class="ranking-toggle">
+      <div>
+        <div class="rt-label">スコアを公開してランキングに参加する</div>
+        <div class="rt-sub">解答時間・正解率でスコアを算出して競います</div>
+      </div>
+      <button class="sw off" id="ranking-sw" aria-label="ランキング参加" role="switch" aria-checked="false">
+        <div class="knob"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 開始ボタン -->
+  <div class="start-area">
+    <button class="btn-start" id="btn-start">
+      <i class="ti ti-player-play"></i>クイズを始める
+    </button>
+    <div class="start-hint" id="start-hint"></div>
+  </div>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, initMobileNav, renderTopbar, renderFooter, toast } from "./js/firebase.js";
+  import { initAuthUI, getCurrentUser } from "./js/auth.js";
+  import { db } from "./js/firebase.js";
+  import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("クイズ");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+  initMobileNav();
+  initAuthUI();
+
+  // ============================================================
+  //  状態
+  // ============================================================
+  let currentUser = null;
+  let state = {
+    quizType:    "year_to_event",
+    timelines:   new Set(["timeline_01"]),
+    regions:     new Set(["世界","日本"]),
+    importances: new Set(["S","A","B"]),
+    fields:      new Set(["政","外","戦","社","経"]),
+    teiki:       false,
+    count:       20,
+    ranking:     false,
+  };
+
+  // ============================================================
+  //  認証確認
+  // ============================================================
+  (async () => {
+    currentUser = await getCurrentUser();
+    if (!currentUser) {
+      document.getElementById("login-banner").style.display = "flex";
+      document.getElementById("ranking-sw").disabled = true;
+      document.getElementById("ranking-sw").style.opacity = ".4";
+    }
+  })();
+
+  // ============================================================
+  //  クイズ種類
+  // ============================================================
+  document.querySelectorAll("[data-qt]").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll("[data-qt]").forEach(e => e.classList.remove("on"));
+      el.classList.add("on");
+      state.quizType = el.dataset.qt;
+    });
+  });
+
+  // ============================================================
+  //  フィルター
+  // ============================================================
+  document.querySelectorAll("[data-filter='region']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.regions.has(v) ? state.regions.delete(v) : state.regions.add(v);
+    });
+  });
+  document.querySelectorAll("[data-filter='importance']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.importances.has(v) ? state.importances.delete(v) : state.importances.add(v);
+    });
+  });
+  document.querySelectorAll("[data-filter='field']").forEach(el => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      const v = el.dataset.value;
+      state.fields.has(v) ? state.fields.delete(v) : state.fields.add(v);
+    });
+  });
+  document.getElementById("pill-teiki").addEventListener("click", function() {
+    state.teiki = !state.teiki;
+    this.classList.toggle("on", state.teiki);
+  });
+
+  // ============================================================
+  //  問題数スライダー
+  // ============================================================
+  const slider = document.getElementById("count-slider");
+  slider.addEventListener("input", () => {
+    state.count = parseInt(slider.value);
+    document.getElementById("count-display").textContent = state.count;
+  });
+
+  // ============================================================
+  //  ランキングトグル
+  // ============================================================
+  document.getElementById("ranking-sw").addEventListener("click", function() {
+    if (!currentUser) { toast("ランキング参加はログインが必要です", "error"); return; }
+    state.ranking = !state.ranking;
+    this.classList.toggle("on", state.ranking);
+    this.classList.toggle("off", !state.ranking);
+    this.setAttribute("aria-checked", state.ranking);
+  });
+
+  // ============================================================
+  //  クイズ開始
+  // ============================================================
+  document.getElementById("btn-start").addEventListener("click", async () => {
+    const hint = document.getElementById("start-hint");
+
+    // バリデーション
+    if (state.regions.size === 0) { toast("地域を1つ以上選んでください", "error"); return; }
+    if (state.importances.size === 0 && !state.teiki) { toast("重要度を1つ以上選んでください", "error"); return; }
+    if (state.fields.size === 0) { toast("分野を1つ以上選んでください", "error"); return; }
+
+    hint.textContent = "問題を準備中...";
+    document.getElementById("btn-start").disabled = true;
+
+    try {
+      // Firestoreからフィルター済みデータを取得
+      let allEvents = [];
+      for (const tlId of state.timelines) {
+        const q = query(collection(db, "events"), where("timelineId","==",tlId));
+        const snap = await getDocs(q);
+        allEvents.push(...snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+
+      // フィルター適用
+      const importanceFilter = state.teiki ? new Set(["S","A","B","C"]) : state.importances;
+      const pool = allEvents.filter(e =>
+        state.regions.has(e.region) &&
+        importanceFilter.has(e.importance) &&
+        state.fields.has(e.field) &&
+        (state.quizType !== "mnemonic_to_event" && state.quizType !== "event_to_mnemonic" || e.mnemonic)
+      );
+
+      if (pool.length < 4) {
+        toast("問題数が足りません（最低4件必要）。範囲を広げてください", "error");
+        hint.textContent = "";
+        document.getElementById("btn-start").disabled = false;
+        return;
+      }
+
+      // シャッフルして問題数分切り出し
+      const shuffled  = pool.sort(() => Math.random() - .5);
+      const questions = shuffled.slice(0, Math.min(state.count, pool.length));
+
+      // セッションストレージに保存してクイズ画面へ
+      sessionStorage.setItem("quiz_questions", JSON.stringify(questions));
+      sessionStorage.setItem("quiz_settings", JSON.stringify({
+        quizType: state.quizType,
+        ranking:  state.ranking && !!currentUser,
+      }));
+
+      location.href = "quiz.html";
+    } catch(e) {
+      toast("エラーが発生しました。再度お試しください", "error");
+      hint.textContent = "";
+      document.getElementById("btn-start").disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

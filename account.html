@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アカウント設定 — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .page-layout { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 52px); }
+    .sidenav {
+      background: var(--c-surface);
+      border-right: 1px solid var(--c-border-lt);
+      padding: 18px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 52px;
+      height: calc(100vh - 52px);
+    }
+    .sn-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 11px;
+      border-radius: var(--r-md);
+      font-size: 13px; cursor: pointer;
+      color: var(--c-text-2);
+      border: none; background: none;
+      width: 100%; text-align: left;
+      font-family: var(--font-ja);
+      transition: all var(--dur);
+    }
+    .sn-item:hover { background: var(--c-bg); color: var(--c-text); }
+    .sn-item.on { background: var(--c-primary-lt); color: var(--c-primary-dk); font-weight: 500; }
+    .sn-item i { font-size: 17px; }
+    .sn-item.danger { color: #a32d2d; }
+    .sn-item.danger:hover { background: #fde8e8; }
+    .sn-div { height: 1px; background: var(--c-border-lt); margin: 6px 0; }
+
+    .content { padding: 28px 24px 60px; max-width: 700px; }
+    .content-title { font-family: var(--font-serif); font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .content-sub { font-size: 13px; color: var(--c-text-2); margin-bottom: 24px; }
+
+    .section {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .section-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--c-border-lt);
+    }
+    .section-head i { font-size: 18px; color: var(--c-primary); }
+    .section-head-title { font-size: 14px; font-weight: 500; }
+    .section-body { padding: 20px; }
+
+    /* 統計グリッド */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .stat-chip {
+      background: var(--c-bg);
+      border-radius: var(--r-lg);
+      padding: 12px 10px; text-align: center;
+    }
+    .stat-val { font-size: 20px; font-weight: 700; color: var(--c-primary); }
+    .stat-lbl { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    /* アバター */
+    .avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .avatar {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: var(--c-primary-lt);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 500; color: var(--c-primary);
+      flex-shrink: 0;
+    }
+
+    /* フォームグリッド */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+
+    /* トグル行 */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--c-border-lt);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info {}
+    .toggle-label { font-size: 13px; color: var(--c-text); }
+    .toggle-sub   { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    .save-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+    .danger-section { border-color: #f7c1c1; }
+    .danger-section .section-head { border-bottom-color: #f7c1c1; }
+    .danger-section .section-head i { color: #a32d2d; }
+    .danger-title { font-size: 14px; font-weight: 500; color: #a32d2d; }
+
+    @media (max-width: 768px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .sidenav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="page-layout">
+
+  <aside class="sidenav">
+    <button class="sn-item on" onclick="scrollTo(0,0)"><i class="ti ti-user"></i>プロフィール</button>
+    <button class="sn-item"><i class="ti ti-trophy"></i>ランキング設定</button>
+    <button class="sn-item"><i class="ti ti-lock"></i>パスワード変更</button>
+    <div class="sn-div"></div>
+    <button class="sn-item danger" id="btn-logout"><i class="ti ti-logout"></i>ログアウト</button>
+  </aside>
+
+  <main class="content" id="main-content">
+    <div class="content-title">アカウント設定</div>
+    <div class="content-sub">プロフィールとランキング設定を管理します</div>
+
+    <!-- 統計 -->
+    <div class="section">
+      <div class="section-head"><i class="ti ti-chart-bar"></i><span class="section-head-title">学習統計</span></div>
+      <div class="section-body">
+        <div class="stats-grid">
+          <div class="stat-chip"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">総解答数</div></div>
+          <div class="stat-chip"><div class="stat-val" id="stat-rate">—</div><div class="stat-lbl">正解率</div></div>
+          <div class="stat-chip"><div class="stat-val" id="stat-score">—</div><div class="stat-lbl">累計スコア</div></div>
+          <div class="stat-chip"><div class="stat-val" id="stat-rank">—</div><div class="stat-lbl">ランキング</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 基本情報 -->
+    <div class="section">
+      <div class="section-head"><i class="ti ti-user-circle"></i><span class="section-head-title">基本情報</span></div>
+      <div class="section-body">
+        <div class="avatar-row">
+          <div class="avatar" id="avatar-initial">?</div>
+          <div>
+            <div style="font-size:13px;color:var(--c-text-2);margin-bottom:4px">プロフィール画像は表示名の頭文字を使用しています</div>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label>表示名（ランキング用）</label>
+            <input type="text" id="input-name" placeholder="表示名">
+          </div>
+          <div class="field">
+            <label>メールアドレス</label>
+            <input type="email" id="input-email" placeholder="—" disabled style="opacity:.6">
+          </div>
+        </div>
+        <div class="msg msg-ok" id="profile-ok" style="display:none;margin-top:12px">
+          <i class="ti ti-check"></i><span>保存しました</span>
+        </div>
+        <div class="save-row">
+          <button class="btn btn-primary" id="btn-save-profile"><i class="ti ti-check"></i>変更を保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ランキング設定 -->
+    <div class="section">
+      <div class="section-head"><i class="ti ti-trophy"></i><span class="section-head-title">ランキング設定</span></div>
+      <div class="section-body">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">ランキングに参加する</div>
+            <div class="toggle-sub">スコアが公開ランキングに表示されます</div>
+          </div>
+          <button class="sw on" id="sw-ranking" aria-label="ランキング参加"><div class="knob"></div></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">解答時間をスコアに反映する</div>
+            <div class="toggle-sub">速く正解するほど高スコアになります</div>
+          </div>
+          <button class="sw on" id="sw-time" aria-label="解答時間反映"><div class="knob"></div></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">プロフィールを公開する</div>
+            <div class="toggle-sub">他のユーザーが統計を閲覧できます</div>
+          </div>
+          <button class="sw off" id="sw-public" aria-label="プロフィール公開"><div class="knob"></div></button>
+        </div>
+        <div class="save-row">
+          <button class="btn btn-primary" id="btn-save-ranking"><i class="ti ti-check"></i>保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 危険な操作 -->
+    <div class="section danger-section">
+      <div class="section-head"><i class="ti ti-alert-triangle"></i><span class="danger-title">危険な操作</span></div>
+      <div class="section-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--c-text)">アカウントを削除する</div>
+          <div style="font-size:12px;color:var(--c-text-3);margin-top:3px">全データが完全に削除されます。この操作は取り消せません。</div>
+        </div>
+        <button class="btn btn-danger" id="btn-delete"><i class="ti ti-trash"></i>削除</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, initMobileNav, renderTopbar, renderFooter, toast } from "./js/firebase.js";
+  import { initAuthUI, getCurrentUser, logout } from "./js/auth.js";
+  import { auth, db } from "./js/firebase.js";
+  import {
+    updateProfile, deleteUser, EmailAuthProvider, reauthenticateWithCredential
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+  initMobileNav();
+  initAuthUI();
+
+  let user    = null;
+  let userDoc = null;
+
+  // ============================================================
+  //  初期化
+  // ============================================================
+  (async () => {
+    user = await getCurrentUser();
+    if (!user) { location.href = "login.html"; return; }
+
+    // プロフィール表示
+    document.getElementById("input-name").value  = user.displayName || "";
+    document.getElementById("input-email").value = user.email || "";
+    document.getElementById("avatar-initial").textContent = (user.displayName || "?")[0];
+
+    // Firestoreのユーザーデータ取得
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      userDoc = snap.data();
+      setSw("sw-ranking", userDoc.joinedRanking !== false);
+      setSw("sw-time",    userDoc.showTime !== false);
+      setSw("sw-public",  userDoc.profilePublic === true);
+    }
+
+    // 統計表示
+    document.getElementById("stat-total").textContent  = (userDoc?.totalAnswered || 0).toLocaleString();
+    const rate = userDoc?.totalAnswered > 0
+      ? Math.round(userDoc.totalCorrect / userDoc.totalAnswered * 100) + "%"
+      : "—";
+    document.getElementById("stat-rate").textContent   = rate;
+    document.getElementById("stat-score").textContent  = (userDoc?.totalScore || 0).toLocaleString();
+
+    // ランキング順位
+    try {
+      const rq = query(collection(db, "rankings"), where("totalScore", ">", userDoc?.totalScore || 0));
+      const rs = await getDocs(rq);
+      document.getElementById("stat-rank").textContent = (rs.size + 1) + "位";
+    } catch(e) {
+      document.getElementById("stat-rank").textContent = "—";
+    }
+  })();
+
+  // ============================================================
+  //  トグルスイッチ
+  // ============================================================
+  function setSw(id, on) {
+    const el = document.getElementById(id);
+    el.classList.toggle("on",  on);
+    el.classList.toggle("off", !on);
+  }
+  function getSw(id) { return document.getElementById(id).classList.contains("on"); }
+
+  ["sw-ranking","sw-time","sw-public"].forEach(id => {
+    document.getElementById(id).addEventListener("click", function() {
+      const isOn = this.classList.contains("on");
+      setSw(id, !isOn);
+    });
+  });
+
+  // ============================================================
+  //  プロフィール保存
+  // ============================================================
+  document.getElementById("btn-save-profile").addEventListener("click", async () => {
+    const name = document.getElementById("input-name").value.trim();
+    if (!name) { toast("表示名を入力してください", "error"); return; }
+    try {
+      await updateProfile(user, { displayName: name });
+      await updateDoc(doc(db, "users", user.uid), { displayName: name });
+      await updateDoc(doc(db, "rankings", user.uid), { displayName: name }).catch(() => {});
+      document.getElementById("avatar-initial").textContent = name[0];
+      document.getElementById("profile-ok").style.display = "flex";
+      toast("プロフィールを保存しました", "success");
+      setTimeout(() => { document.getElementById("profile-ok").style.display = "none"; }, 3000);
+    } catch(e) {
+      toast("保存に失敗しました", "error");
+    }
+  });
+
+  // ============================================================
+  //  ランキング設定保存
+  // ============================================================
+  document.getElementById("btn-save-ranking").addEventListener("click", async () => {
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        joinedRanking: getSw("sw-ranking"),
+        showTime:      getSw("sw-time"),
+        profilePublic: getSw("sw-public"),
+      });
+      toast("設定を保存しました", "success");
+    } catch(e) {
+      toast("保存に失敗しました", "error");
+    }
+  });
+
+  // ============================================================
+  //  ログアウト
+  // ============================================================
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    if (confirm("ログアウトしますか？")) logout();
+  });
+
+  // ============================================================
+  //  アカウント削除
+  // ============================================================
+  document.getElementById("btn-delete").addEventListener("click", async () => {
+    const confirmed = confirm("本当にアカウントを削除しますか？\n全データが完全に削除されます。この操作は取り消せません。");
+    if (!confirmed) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      await deleteDoc(doc(db, "rankings", user.uid)).catch(() => {});
+      await deleteUser(user);
+      toast("アカウントを削除しました");
+      location.href = "index.html";
+    } catch(e) {
+      if (e.code === "auth/requires-recent-login") {
+        toast("セキュリティのため再ログインが必要です。ログアウトして再度ログインしてから削除してください", "error");
+      } else {
+        toast("削除に失敗しました", "error");
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

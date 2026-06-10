@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ結果 — 歴史タイムライン</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .page-wrap { max-width: 680px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    /* 結果ヘッダー */
+    .result-hero {
+      background: linear-gradient(135deg, var(--c-primary-dk), var(--c-primary));
+      border-radius: var(--r-xl);
+      padding: 32px 28px;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-lg);
+    }
+    .result-emoji { font-size: 48px; margin-bottom: 8px; }
+    .result-title { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .result-sub   { font-size: 13px; opacity: .85; margin-bottom: 20px; }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .rs-chip {
+      background: rgba(255,255,255,.15);
+      border-radius: var(--r-lg);
+      padding: 10px 8px;
+    }
+    .rs-val { font-size: 20px; font-weight: 700; }
+    .rs-lbl { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+    /* アクションボタン */
+    .action-row {
+      display: flex; gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .action-row .btn { flex: 1; justify-content: center; min-width: 120px; }
+
+    /* 問題ごとの結果 */
+    .result-list-title {
+      font-size: 14px; font-weight: 500;
+      color: var(--c-text);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .result-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-lg);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .result-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .ri-correct { background: var(--c-primary-lt); color: var(--c-primary); }
+    .ri-wrong   { background: #fde8e8; color: var(--c-sen); }
+    .result-body { flex: 1; min-width: 0; }
+    .result-event {
+      font-size: 13px; font-weight: 500;
+      color: var(--c-text);
+      margin-bottom: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .result-meta { font-size: 11px; color: var(--c-text-3); }
+    .result-imp  { flex-shrink: 0; }
+
+    /* ランキングバナー */
+    .ranking-banner {
+      background: linear-gradient(135deg, #B45309, #D97706);
+      border-radius: var(--r-xl);
+      padding: 18px 22px;
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 20px;
+      color: #fff;
+      box-shadow: var(--shadow-md);
+    }
+    .rb-icon { font-size: 32px; }
+    .rb-title { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+    .rb-sub   { font-size: 12px; opacity: .85; }
+    .rb-btn {
+      margin-left: auto; flex-shrink: 0;
+      padding: 8px 16px;
+      border-radius: var(--r-md);
+      background: rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.4);
+      color: #fff; font-size: 13px; cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--dur);
+    }
+    .rb-btn:hover { background: rgba(255,255,255,.32); }
+
+    /* 正解率グラフ */
+    .rate-bar-wrap {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .rate-bar-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+    .bar-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px; font-size: 12px;
+    }
+    .bar-label { width: 60px; color: var(--c-text-2); flex-shrink: 0; }
+    .bar-bg { flex: 1; height: 10px; background: var(--c-surface-2); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width .6s var(--ease); }
+    .bar-pct { width: 36px; text-align: right; color: var(--c-text-2); flex-shrink: 0; }
+
+    @media (max-width: 600px) {
+      .result-stats { grid-template-columns: repeat(2, 1fr); }
+      .action-row .btn { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="toast-container"></div>
+
+<div class="page-wrap">
+
+  <!-- 結果ヒーロー -->
+  <div class="result-hero">
+    <div class="result-emoji" id="result-emoji">🎉</div>
+    <div class="result-title" id="result-title">クイズ完了！</div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="result-stats">
+      <div class="rs-chip"><div class="rs-val" id="rs-score">0</div><div class="rs-lbl">スコア</div></div>
+      <div class="rs-chip"><div class="rs-val" id="rs-rate">0%</div><div class="rs-lbl">正解率</div></div>
+      <div class="rs-chip"><div class="rs-val" id="rs-correct">0</div><div class="rs-lbl">正解数</div></div>
+      <div class="rs-chip"><div class="rs-val" id="rs-time">0:00</div><div class="rs-lbl">所要時間</div></div>
+    </div>
+  </div>
+
+  <!-- アクション -->
+  <div class="action-row">
+    <button class="btn btn-primary btn-lg" onclick="location.href='quiz-select.html'">
+      <i class="ti ti-refresh"></i>もう一度
+    </button>
+    <button class="btn btn-outline btn-lg" onclick="location.href='ranking.html'">
+      <i class="ti ti-trophy"></i>ランキング
+    </button>
+    <button class="btn btn-ghost btn-lg" onclick="location.href='index.html'">
+      <i class="ti ti-home"></i>ホームへ
+    </button>
+  </div>
+
+  <!-- ランキングバナー（参加時） -->
+  <div class="ranking-banner" id="ranking-banner" style="display:none">
+    <div class="rb-icon">🏆</div>
+    <div>
+      <div class="rb-title">ランキングにスコアを登録しました！</div>
+      <div class="rb-sub">あなたの順位を確認しましょう</div>
+    </div>
+    <button class="rb-btn" onclick="location.href='ranking.html'">
+      ランキングを見る <i class="ti ti-arrow-right"></i>
+    </button>
+  </div>
+
+  <!-- 正解率バー -->
+  <div class="rate-bar-wrap" id="rate-bars" style="display:none">
+    <div class="rate-bar-title">重要度別 正解率</div>
+    <div id="bar-S"><div class="bar-row"><span class="bar-label">S</span><div class="bar-bg"><div class="bar-fill" style="background:var(--c-sen);width:0%"></div></div><span class="bar-pct">—</span></div></div>
+    <div id="bar-A"><div class="bar-row"><span class="bar-label">A</span><div class="bar-bg"><div class="bar-fill" style="background:var(--c-imp-a);width:0%"></div></div><span class="bar-pct">—</span></div></div>
+    <div id="bar-B"><div class="bar-row"><span class="bar-label">B</span><div class="bar-bg"><div class="bar-fill" style="background:var(--c-imp-b);width:0%"></div></div><span class="bar-pct">—</span></div></div>
+    <div id="bar-C"><div class="bar-row"><span class="bar-label">C</span><div class="bar-bg"><div class="bar-fill" style="background:var(--c-imp-c);width:0%"></div></div><span class="bar-pct">—</span></div></div>
+  </div>
+
+  <!-- 問題別結果 -->
+  <div class="result-list-title">
+    <i class="ti ti-list-check" style="color:var(--c-primary)"></i>問題ごとの結果
+  </div>
+  <div id="result-list"></div>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, renderTopbar, renderFooter } from "./js/firebase.js";
+
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("クイズ");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+  initThemeSwitcher();
+
+  const data = JSON.parse(sessionStorage.getItem("quiz_results") || "null");
+  if (!data) { location.href = "quiz-select.html"; }
+
+  const { score, correct, wrong, total, elapsed, quizType, ranking, results } = data;
+  const rate = total > 0 ? Math.round(correct / total * 100) : 0;
+
+  // ヘッダー
+  const emoji = rate >= 90 ? "🏆" : rate >= 70 ? "🎉" : rate >= 50 ? "😊" : "📚";
+  document.getElementById("result-emoji").textContent = emoji;
+  document.getElementById("result-title").textContent =
+    rate >= 90 ? "完璧！素晴らしい結果です" :
+    rate >= 70 ? "よくできました！" :
+    rate >= 50 ? "もう少し！復習しましょう" : "苦手を克服しよう！";
+  document.getElementById("result-sub").textContent = `${total}問中 ${correct}問正解`;
+  document.getElementById("rs-score").textContent   = score.toLocaleString();
+  document.getElementById("rs-rate").textContent    = rate + "%";
+  document.getElementById("rs-correct").textContent = `${correct}/${total}`;
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  document.getElementById("rs-time").textContent   = `${m}:${s.toString().padStart(2,"0")}`;
+
+  // ランキングバナー
+  if (ranking) document.getElementById("ranking-banner").style.display = "flex";
+
+  // 重要度別正解率
+  const impStats = {};
+  results.forEach(r => {
+    if (!impStats[r.importance]) impStats[r.importance] = { c:0, t:0 };
+    impStats[r.importance].t++;
+    if (r.isCorrect) impStats[r.importance].c++;
+  });
+  const hasStats = Object.keys(impStats).length > 0;
+  if (hasStats) {
+    document.getElementById("rate-bars").style.display = "block";
+    ["S","A","B","C"].forEach(imp => {
+      const el = document.getElementById(`bar-${imp}`);
+      if (!el) return;
+      const stat = impStats[imp];
+      if (!stat) return;
+      const pct = Math.round(stat.c / stat.t * 100);
+      el.querySelector(".bar-fill").style.width = pct + "%";
+      el.querySelector(".bar-pct").textContent  = pct + "%";
+    });
+    // アニメーション開始（少し遅延）
+    setTimeout(() => {}, 100);
+  }
+
+  // 問題別結果リスト
+  const list = document.getElementById("result-list");
+  const QUIZ_TYPE_LABELS = {
+    year_to_event:      "年号→出来事",
+    mnemonic_to_event:  "語呂→出来事",
+    event_to_year:      "出来事→年号",
+    year_to_mnemonic:   "年号→語呂",
+    event_to_mnemonic:  "出来事→語呂",
+  };
+  list.innerHTML = results.map((r, i) => `
+    <div class="result-card">
+      <div class="result-icon ${r.isCorrect ? "ri-correct" : "ri-wrong"}">
+        <i class="ti ${r.isCorrect ? "ti-check" : "ti-x"}"></i>
+      </div>
+      <div class="result-body">
+        <div class="result-event">${i + 1}. ${r.event}</div>
+        <div class="result-meta">
+          ${r.year} ／ 解答時間 ${r.elapsed}秒
+        </div>
+      </div>
+      <div class="result-imp">
+        <span class="imp imp-${r.importance}">${r.importance}</span>
+      </div>
+    </div>
+  `).join("");
+</script>
+
+</body>
+</html>

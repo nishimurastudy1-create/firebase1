@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歴史タイムライン — 受験生のための歴史学習サイト</title>
+  <meta name="description" content="年号・語呂合わせ・歴史の流れを体系的に学べる受験生向け歴史学習サイト。年表閲覧・クイズ・ランキング機能あり。">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    /* ---- ヒーローセクション ---- */
+    .hero {
+      background: linear-gradient(135deg, var(--c-primary-dk) 0%, var(--c-primary) 60%, var(--c-accent) 100%);
+      padding: 60px 24px 52px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 14px;
+      border-radius: 99px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(255,255,255,.3);
+      letter-spacing: .05em;
+    }
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+      line-height: 1.4;
+      position: relative;
+    }
+    .hero p {
+      font-size: 14px;
+      color: rgba(255,255,255,.85);
+      max-width: 440px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+      position: relative;
+    }
+    .hero-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .hero-btns .btn {
+      padding: 11px 26px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .btn-hero-primary {
+      background: #fff;
+      color: var(--c-primary-dk);
+    }
+    .btn-hero-primary:hover { background: rgba(255,255,255,.9); }
+    .btn-hero-outline {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.4);
+    }
+    .btn-hero-outline:hover { background: rgba(255,255,255,.22); }
+
+    /* ---- お知らせバー ---- */
+    .notice-bar {
+      background: var(--c-primary-lt);
+      border-bottom: 1px solid var(--c-border-lt);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .notice-label {
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--c-primary);
+      color: #fff;
+      padding: 2px 9px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .notice-text { font-size: 13px; color: var(--c-text-2); flex: 1; }
+    .notice-link { font-size: 12px; color: var(--c-primary); white-space: nowrap; }
+
+    /* ---- メインコンテンツグリッド ---- */
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
+      padding: 28px 24px;
+    }
+
+    .section-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-lt);
+      border-radius: var(--r-xl);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .sc-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .sc-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-lg);
+      background: var(--c-primary-lt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c-primary);
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .sc-title { font-size: 15px; font-weight: 500; }
+    .sc-sub   { font-size: 12px; color: var(--c-text-2); margin-top: 2px; }
+
+    /* 年表リスト */
+    .tl-list { display: flex; flex-direction: column; gap: 8px; }
+    .tl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+      background: var(--c-bg);
+      border-radius: var(--r-lg);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background var(--dur);
+    }
+    .tl-item:hover { background: var(--c-primary-lt); }
+    .tl-status {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .tl-status.open   { background: var(--c-primary-lt); color: var(--c-primary); }
+    .tl-status.coming { background: var(--c-surface-2); color: var(--c-text-3); border: 1px solid var(--c-border); }
+    .tl-name  { font-size: 13px; color: var(--c-text); flex: 1; }
+    .tl-count { font-size: 12px; color: var(--c-text-3); }
+
+    /* クイズリスト */
+    .quiz-list { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 13px;
+      background: var(--c-bg);
+      border-radius: var(--r-lg);
+      cursor: pointer;
+      transition: background var(--dur);
+    }
+    .quiz-item:hover { background: var(--c-primary-lt); }
+    .quiz-name { font-size: 13px; color: var(--c-text); }
+    .quiz-meta { font-size: 11px; color: var(--c-text-3); margin-top: 2px; }
+
+    /* ランキング */
+    .rank-list { display: flex; flex-direction: column; gap: 8px; }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 13px;
+      background: var(--c-bg);
+      border-radius: var(--r-lg);
+    }
+    .rank-no { font-size: 13px; font-weight: 700; width: 22px; text-align: center; }
+    .rank-no.g1 { color: #b8860b; }
+    .rank-no.g2 { color: #888; }
+    .rank-no.g3 { color: #8b4513; }
+    .rank-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--c-primary-lt);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500; color: var(--c-primary);
+    }
+    .rank-name  { font-size: 13px; color: var(--c-text); flex: 1; }
+    .rank-score { font-size: 13px; font-weight: 500; color: var(--c-primary); }
+
+    .sc-footer { margin-top: 14px; text-align: center; }
+    .link-more {
+      font-size: 12px;
+      color: var(--c-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+    .link-more:hover { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 22px; }
+      .main-grid { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar-placeholder"></div>
+<div id="mobile-nav-placeholder"></div>
+<div id="toast-container"></div>
+
+<!-- ヒーロー -->
+<section class="hero">
+  <div class="hero-badge">受験生のための歴史学習サイト</div>
+  <h1>年号と歴史の流れを<br>確実に身につける</h1>
+  <p>語呂合わせ付き年表の閲覧から選択式クイズまで。高校入試・定期テストに頻出の出来事を体系的に学べます。</p>
+  <div class="hero-btns">
+    <a href="timeline.html" class="btn btn-hero-primary">
+      <i class="ti ti-layout-list"></i>年表を見る
+    </a>
+    <a href="quiz-select.html" class="btn btn-hero-outline">
+      <i class="ti ti-puzzle"></i>クイズに挑戦
+    </a>
+  </div>
+</section>
+
+<!-- お知らせバー -->
+<div class="notice-bar">
+  <span class="notice-label">お知らせ</span>
+  <span class="notice-text">年表①「日本と世界の近代化」を公開しました</span>
+  <a href="#" class="notice-link">一覧を見る <i class="ti ti-chevron-right" style="font-size:11px"></i></a>
+</div>
+
+<!-- メインコンテンツ -->
+<div class="main-grid">
+
+  <!-- 年表 -->
+  <div class="section-card">
+    <div class="sc-header">
+      <div class="sc-icon"><i class="ti ti-layout-list"></i></div>
+      <div>
+        <div class="sc-title">年表</div>
+        <div class="sc-sub">テーマ別に閲覧・フィルター</div>
+      </div>
+    </div>
+    <div class="tl-list">
+      <a href="timeline.html?id=timeline_01" class="tl-item">
+        <span class="tl-status open">公開中</span>
+        <span class="tl-name">① 日本と世界の近代化</span>
+        <span class="tl-count">約170件</span>
+        <i class="ti ti-chevron-right" style="font-size:14px;color:var(--c-text-3)"></i>
+      </a>
+      <div class="tl-item" style="cursor:default;opacity:.6">
+        <span class="tl-status coming">準備中</span>
+        <span class="tl-name">② 古代〜中世</span>
+        <span class="tl-count">—</span>
+      </div>
+      <div class="tl-item" style="cursor:default;opacity:.6">
+        <span class="tl-status coming">準備中</span>
+        <span class="tl-name">③ 戦後〜現代</span>
+        <span class="tl-count">—</span>
+      </div>
+    </div>
+    <div class="sc-footer">
+      <a href="timeline.html" class="link-more">年表一覧 <i class="ti ti-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <!-- クイズ -->
+  <div class="section-card">
+    <div class="sc-header">
+      <div class="sc-icon"><i class="ti ti-puzzle"></i></div>
+      <div>
+        <div class="sc-title">クイズ</div>
+        <div class="sc-sub">ログインで全機能解放</div>
+      </div>
+    </div>
+    <div class="quiz-list" id="quiz-preview">
+      <div class="quiz-item">
+        <div>
+          <div class="quiz-name">年号 → 出来事</div>
+          <div class="quiz-meta">近代化 ／ 全範囲</div>
+        </div>
+        <i class="ti ti-lock" style="color:var(--c-text-3)"></i>
+      </div>
+      <div class="quiz-item">
+        <div>
+          <div class="quiz-name">語呂合わせ → 出来事</div>
+          <div class="quiz-meta">近代化 ／ 定期テスト範囲</div>
+        </div>
+        <i class="ti ti-lock" style="color:var(--c-text-3)"></i>
+      </div>
+      <div class="quiz-item">
+        <div>
+          <div class="quiz-name">出来事 → 年号</div>
+          <div class="quiz-meta">近代化 ／ 重要度S・A</div>
+        </div>
+        <i class="ti ti-lock" style="color:var(--c-text-3)"></i>
+      </div>
+    </div>
+    <div class="sc-footer">
+      <a href="quiz-select.html" class="link-more">クイズ一覧 <i class="ti ti-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="section-card">
+    <div class="sc-header">
+      <div class="sc-icon"><i class="ti ti-trophy"></i></div>
+      <div>
+        <div class="sc-title">ランキング</div>
+        <div class="sc-sub">今週の上位</div>
+      </div>
+    </div>
+    <div class="rank-list" id="ranking-preview">
+      <div style="text-align:center;padding:20px;color:var(--c-text-3);font-size:13px;">
+        <div class="spinner" style="margin:0 auto 8px;width:24px;height:24px;border-width:2px;"></div>
+        読み込み中...
+      </div>
+    </div>
+    <div class="sc-footer">
+      <a href="ranking.html" class="link-more">全ランキングを見る <i class="ti ti-arrow-right"></i></a>
+    </div>
+  </div>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script type="module">
+  import { initThemeSwitcher, initMobileNav, renderTopbar, renderFooter } from "./js/firebase.js";
+  import { initAuthUI } from "./js/auth.js";
+  import { db } from "./js/firebase.js";
+  import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // トップバー・フッター挿入
+  document.getElementById("topbar-placeholder").outerHTML = renderTopbar("概要");
+  document.getElementById("footer-placeholder").outerHTML = renderFooter();
+
+  // テーマ・ナビ初期化
+  initThemeSwitcher();
+  initMobileNav();
+  initAuthUI();
+
+  // ランキングプレビューを取得
+  async function loadRankingPreview() {
+    const el = document.getElementById("ranking-preview");
+    try {
+      const q = query(collection(db, "rankings"), orderBy("totalScore", "desc"), limit(3));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--c-text-3);font-size:13px;">まだランキングデータがありません</div>`;
+        return;
+      }
+      const medals = ["g1","g2","g3"];
+      const medalEmoji = ["🥇","🥈","🥉"];
+      let html = "";
+      snap.docs.forEach((doc, i) => {
+        const d = doc.data();
+        const initial = (d.displayName || "?")[0];
+        html += `
+          <div class="rank-item">
+            <span class="rank-no ${medals[i]}">${medalEmoji[i]}</span>
+            <div class="rank-avatar">${initial}</div>
+            <span class="rank-name">${d.displayName || "匿名"}</span>
+            <span class="rank-score">${(d.totalScore || 0).toLocaleString()}pt</span>
+          </div>`;
+      });
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--c-text-3);font-size:13px;">読み込みに失敗しました</div>`;
+    }
+  }
+
+  loadRankingPreview();
+</script>
+
+</body>
+</html>
