@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>データインポートツール — 歴史タイムライン</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4f0;
+      color: #1a1a1a;
+      padding: 40px 20px;
+    }
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    h1 { font-size: 22px; font-weight: 700; color: #085041; }
+    p  { font-size: 14px; color: #555; line-height: 1.7; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #d9ddd8;
+      border-radius: 14px;
+      padding: 22px 24px;
+    }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #1a1a1a; }
+
+    .warn {
+      background: #fef3e2;
+      border: 1px solid #f9d49e;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #6b3006;
+      line-height: 1.6;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: #1D9E75; color: #fff; }
+    .btn-danger  { background: #e05555; color: #fff; }
+    .btn-ghost   { background: #eee; color: #333; }
+
+    .log-box {
+      background: #0f1a0f;
+      color: #88dd99;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 10px;
+      height: 280px;
+      overflow-y: auto;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .log-err  { color: #ff7777; }
+    .log-warn { color: #ffcc55; }
+    .log-done { color: #55ffaa; font-weight: 700; }
+
+    .progress-bar-bg {
+      background: #e0e0e0;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #1D9E75;
+      border-radius: 99px;
+      transition: width .3s;
+    }
+    .progress-text { font-size: 12px; color: #555; margin-top: 6px; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-no {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: #1D9E75;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-text { font-size: 13px; color: #444; line-height: 1.6; }
+    .step-text strong { color: #1a1a1a; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div>
+    <h1>📦 データインポートツール</h1>
+    <p style="margin-top:6px">このページをブラウザで開くだけでFirestoreにデータを投入できます。Node.js不要です。</p>
+  </div>
+
+  <div class="warn">
+    ⚠️ <strong>注意：</strong>このファイルはデータ投入専用です。完了したら削除するかGitHubにアップロードしないでください。FirebaseのAPIキーが含まれています。
+  </div>
+
+  <div class="card">
+    <h2>手順</h2>
+    <div class="step">
+      <div class="step-no">1</div>
+      <div class="step-text">このHTMLファイルをブラウザで開く（ダブルクリックでOK）</div>
+    </div>
+    <div class="step">
+      <div class="step-no">2</div>
+      <div class="step-text"><strong>「年表データを投入」</strong>ボタンを押す</div>
+    </div>
+    <div class="step">
+      <div class="step-no">3</div>
+      <div class="step-text">ログに「🎉 完了！」が表示されるまで待つ（約30秒）</div>
+    </div>
+    <div class="step">
+      <div class="step-no">4</div>
+      <div class="step-text">Firebaseコンソールで「events」コレクションを確認する</div>
+    </div>
+    <div class="step">
+      <div class="step-no">5</div>
+      <div class="step-text">このファイルを削除する</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>実行</h2>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-import" onclick="startImport()">
+        ▶ 年表データを投入
+      </button>
+      <button class="btn btn-danger" id="btn-clear" onclick="clearData()" style="display:none">
+        🗑 全データ削除（やり直し）
+      </button>
+      <button class="btn btn-ghost" onclick="document.getElementById('log').textContent=''">
+        ログをクリア
+      </button>
+    </div>
+
+    <div class="progress-bar-bg" id="progress-bg" style="display:none">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-text" id="progress-text"></div>
+
+    <div class="log-box" id="log">ログがここに表示されます...</div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, writeBatch, getDocs, deleteDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ============================================================
+  //  Firebase設定
+  // ============================================================
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAt8voQxE_Sd5AJWkbMxp26cfc_VBTLzR8",
+    authDomain:        "nishimura-study.firebaseapp.com",
+    projectId:         "nishimura-study",
+    storageBucket:     "nishimura-study.firebasestorage.app",
+    messagingSenderId: "1081021984108",
+    appId:             "1:1081021984108:web:88dbdf2f907af7267a5749",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ============================================================
+  //  ログ出力
+  // ============================================================
+  function log(msg, type = "") {
+    const el = document.getElementById("log");
+    const line = document.createElement("div");
+    line.textContent = msg;
+    if (type === "err")  line.className = "log-err";
+    if (type === "warn") line.className = "log-warn";
+    if (type === "done") line.className = "log-done";
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setProgress(done, total) {
+    const pct = Math.round(done / total * 100);
+    document.getElementById("progress-fill").style.width = pct + "%";
+    document.getElementById("progress-text").textContent = `${done} / ${total} 件 (${pct}%)`;
+  }
+
+  // ============================================================
+  //  年表データ（timeline_01.json の内容）
+  // ============================================================
+  const TIMELINE_DATA = [
+    {id:"timeline_01", title:"① 日本と世界の近代化", description:"ピューリタン革命（1642年）から中華民国成立（1912年）までの近代史", period:"1642〜1912年", published:true, order:1}
+  ];
+
+  const EVENTS_DATA = [
+    {year:"1642～1649",yearNum:1642,region:"世界",field:"戦",event:"ピューリタン（清教徒）革命（イギリス）",importance:"S",mnemonic:"ヒーロー死に（1642）議会立つ",note:"指導者：クロムウェル",timelineId:"timeline_01"},
+    {year:"1644",yearNum:1644,region:"世界",field:"政",event:"清成立",importance:"B",mnemonic:"ヒーロー清呼べ（1644）新時代",note:"満州族（女真族）",timelineId:"timeline_01"},
+    {year:"1648",yearNum:1648,region:"世界",field:"外",event:"ウェストファリア条約",importance:"D",mnemonic:"宗教終わり人無視や（1648）",note:"三十年戦争終結",timelineId:"timeline_01"},
+    {year:"1687",yearNum:1687,region:"世界",field:"経",event:"ニュートンが万有引力発表",importance:"D",mnemonic:"色はないけど（1687）引力あったわ",note:"",timelineId:"timeline_01"},
+    {year:"1688～1689",yearNum:1688,region:"世界",field:"政",event:"名誉革命（イギリス）",importance:"S",mnemonic:"ヒーローやっぱり（1688）名誉がいい",note:"世界でも稀な無血革命",timelineId:"timeline_01"},
+    {year:"1689",yearNum:1689,region:"世界",field:"政",event:"権利章典（イギリス）",importance:"S",mnemonic:"ヒーローはくわえ（1689）権利章典",note:"",timelineId:"timeline_01"},
+    {year:"1756",yearNum:1756,region:"世界",field:"戦",event:"七年戦争",importance:"E",mnemonic:"人七年も殺し合い（1756）",note:"英仏対立",timelineId:"timeline_01"},
+    {year:"1760頃",yearNum:1760,region:"世界",field:"経",event:"産業革命（イギリス）",importance:"S",mnemonic:"いいな群れ（1760）で新産業スタート",note:"資本主義/社会主義",timelineId:"timeline_01"},
+    {year:"1769",yearNum:1769,region:"世界",field:"経",event:"ワットが蒸気機関を改良",importance:"B",mnemonic:"いいなロックな（1769）蒸気機関",note:"ニューコメンが開発",timelineId:"timeline_01"},
+    {year:"1775",yearNum:1775,region:"世界",field:"戦",event:"アメリカ独立戦争",importance:"S",mnemonic:"いいな泣こうぜ（1775）独立のため",note:"（～1783）",timelineId:"timeline_01"},
+    {year:"1776",yearNum:1776,region:"世界",field:"政",event:"アメリカ独立宣言",importance:"S",mnemonic:"ひとならなろうよ（1776）アメリカ独立",note:"独立宣言当時は13州",timelineId:"timeline_01"},
+    {year:"1787",yearNum:1787,region:"世界",field:"政",event:"アメリカ合衆国憲法制定",importance:"A",mnemonic:"いいなはやいな（1787）憲法できた",note:"三権分立/初代大統領ワシントン",timelineId:"timeline_01"},
+    {year:"1789",yearNum:1789,region:"世界",field:"政",event:"フランス革命",importance:"S",mnemonic:"非難爆裂（1789）バスチーユ",note:"バスチーユ牢獄襲撃",timelineId:"timeline_01"},
+    {year:"1789",yearNum:1789,region:"世界",field:"政",event:"フランス人権宣言",importance:"A",mnemonic:"非難爆裂（1789）もうないさ",note:"啓蒙思想",timelineId:"timeline_01"},
+    {year:"1792",yearNum:1792,region:"日本",field:"外",event:"ロシア使節ラクスマン来航",importance:"B",mnemonic:"異な国（1792）から来たラクスマン",note:"北海道根室に来航",timelineId:"timeline_01"},
+    {year:"1793",yearNum:1793,region:"世界",field:"政",event:"ルイ16世・マリーアントワネット処刑",importance:"B",mnemonic:"人泣く斬首だ（1793）さあギロチン",note:"ルイ16世1月、マリー10月",timelineId:"timeline_01"},
+    {year:"1804",yearNum:1804,region:"世界",field:"政",event:"ナポレオン皇帝即位",importance:"A",mnemonic:"威張れよ（1804）ナポレオン",note:"国民投票で選出",timelineId:"timeline_01"},
+    {year:"1804",yearNum:1804,region:"世界",field:"政",event:"ハイチ独立",importance:"E",mnemonic:"威張れよ（1804）ハイチよ",note:"世界初の黒人国家",timelineId:"timeline_01"},
+    {year:"1804",yearNum:1804,region:"日本",field:"外",event:"レザノフ来航",importance:"C",mnemonic:"威張れよ（1804）レザノフ帰れば",note:"ロシア使節",timelineId:"timeline_01"},
+    {year:"1808",yearNum:1808,region:"日本",field:"外",event:"フェートン号事件",importance:"B",mnemonic:"人は大さわぎ（1808）長崎で",note:"イギリス武装船が長崎に侵入",timelineId:"timeline_01"},
+    {year:"1811",yearNum:1811,region:"日本",field:"外",event:"ゴローニン事件",importance:"B",mnemonic:"人はいい（1811）嘉兵衛活躍",note:"国後島/高田屋嘉兵衛",timelineId:"timeline_01"},
+    {year:"1814～1815",yearNum:1814,region:"世界",field:"外",event:"ウィーン会議",importance:"D",mnemonic:"人はいよいよ（1814）ウィーン集まる",note:"ウィーン議定書（1815）",timelineId:"timeline_01"},
+    {year:"1815",yearNum:1815,region:"世界",field:"外",event:"神聖同盟",importance:"E",mnemonic:"人は以降も（1815）従って",note:"露/墺/普",timelineId:"timeline_01"},
+    {year:"18世紀初頭～19世紀初頭",yearNum:1800,region:"日本",field:"社",event:"化政文化",importance:"S",mnemonic:"人は大いに（1800前後）文化を盛んに",note:"葛飾北斎・歌川広重・十返舎一九等",timelineId:"timeline_01"},
+    {year:"1823",yearNum:1823,region:"世界",field:"外",event:"モンロー宣言",importance:"D",mnemonic:"一発参上（1823）モンロー宣言",note:"トランプ大統領のモンロー主義",timelineId:"timeline_01"},
+    {year:"1824",yearNum:1824,region:"日本",field:"外",event:"イギリス船が各地で薪水要求",importance:"C",mnemonic:"英は強いので（1824）薪水寄こせ",note:"翌年の異国船打払令の決定打に",timelineId:"timeline_01"},
+    {year:"1825",yearNum:1825,region:"日本",field:"外",event:"異国船打払令",importance:"A",mnemonic:"異国船は一発ゴーホーム（1825）",note:"モリソン号事件へ",timelineId:"timeline_01"},
+    {year:"1828",yearNum:1828,region:"日本",field:"外",event:"シーボルト事件",importance:"B",mnemonic:"シーボルト曰くニヤニヤと（1828）",note:"伊能図の国外持ち出し",timelineId:"timeline_01"},
+    {year:"1830",yearNum:1830,region:"世界",field:"政",event:"ギリシャ独立",importance:"D",mnemonic:"ギリシャ支配などもう言わさん（1830）",note:"オスマン帝国",timelineId:"timeline_01"},
+    {year:"1830",yearNum:1830,region:"世界",field:"政",event:"フランス七月革命",importance:"D",mnemonic:"7月になればもう言わさん（1830）",note:"栄光の三日間",timelineId:"timeline_01"},
+    {year:"1830",yearNum:1830,region:"世界",field:"政",event:"ベルギー独立",importance:"E",mnemonic:"ベルギー支配ももう言わさん（1830）",note:"レオポルド一世",timelineId:"timeline_01"},
+    {year:"1833",yearNum:1833,region:"日本",field:"社",event:"天保の飢饉",importance:"A",mnemonic:"人は散々（1833）飢えに飢え",note:"天保の改革へ",timelineId:"timeline_01"},
+    {year:"1837",yearNum:1837,region:"日本",field:"政",event:"大塩平八郎の乱",importance:"A",mnemonic:"言わさな（1837）大塩と共に",note:"元大坂町奉行所与力",timelineId:"timeline_01"},
+    {year:"1837",yearNum:1837,region:"日本",field:"外",event:"モリソン号事件",importance:"B",mnemonic:"言わさな（1837）あかんで列強に",note:"蛮社の獄へ",timelineId:"timeline_01"},
+    {year:"1839",yearNum:1839,region:"日本",field:"政",event:"蛮社の獄",importance:"B",mnemonic:"いやさ苦しめ（1839）さあ蛮社で",note:"蘭学者処罰",timelineId:"timeline_01"},
+    {year:"1840～1842",yearNum:1840,region:"世界",field:"戦",event:"アヘン戦争",importance:"S",mnemonic:"アヘンの怖さを人は知れ（1840）",note:"イギリスが植民地インドのアヘンを密輸/林則徐",timelineId:"timeline_01"},
+    {year:"1841",yearNum:1841,region:"日本",field:"政",event:"天保の改革始まる",importance:"A",mnemonic:"でも人は良い？（1841）水野忠邦",note:"水野忠邦",timelineId:"timeline_01"},
+    {year:"1841",yearNum:1841,region:"日本",field:"経",event:"人返し令",importance:"C",mnemonic:"人はよいしょと（1841）村へと帰れ",note:"",timelineId:"timeline_01"},
+    {year:"1842",yearNum:1842,region:"世界",field:"外",event:"南京条約",importance:"A",mnemonic:"人は世に（1842）誓う南京で",note:"香港割譲",timelineId:"timeline_01"},
+    {year:"1842",yearNum:1842,region:"日本",field:"経",event:"株仲間解散令",importance:"B",mnemonic:"人は世に（1842）散る株仲間",note:"約150年の株仲間終了",timelineId:"timeline_01"},
+    {year:"1842",yearNum:1842,region:"日本",field:"外",event:"薪水給与令",importance:"B",mnemonic:"人は世に（1842）渡す薪水を",note:"打払令撤廃",timelineId:"timeline_01"},
+    {year:"1843",yearNum:1843,region:"日本",field:"政",event:"上知令",importance:"C",mnemonic:"いやよ散々（1843）上知令",note:"大名の猛反発で撤回",timelineId:"timeline_01"},
+    {year:"1848",yearNum:1848,region:"世界",field:"政",event:"二月革命（フランス）",importance:"D",mnemonic:"いやよは（1848）消えろ二月で",note:"六月蜂起",timelineId:"timeline_01"},
+    {year:"1848",yearNum:1848,region:"世界",field:"政",event:"諸国民の春",importance:"D",mnemonic:"いやよは（1848）消える欧の春",note:"二月革命の影響",timelineId:"timeline_01"},
+    {year:"1851",yearNum:1851,region:"世界",field:"戦",event:"太平天国の乱",importance:"C",mnemonic:"人や来い（1851）太平天国",note:"洪秀全",timelineId:"timeline_01"},
+    {year:"1853～1856",yearNum:1853,region:"世界",field:"戦",event:"クリミア戦争",importance:"D",mnemonic:"いや降参（1853）は彼女が止める",note:"ナイチンゲール",timelineId:"timeline_01"},
+    {year:"1853",yearNum:1853,region:"日本",field:"外",event:"ペリー来航",importance:"A",mnemonic:"いや降参（1853）だよペリーさん",note:"浦賀に来航",timelineId:"timeline_01"},
+    {year:"1854",yearNum:1854,region:"日本",field:"外",event:"日米和親条約",importance:"S",mnemonic:"一夜越し（1854）遂に開国",note:"",timelineId:"timeline_01"},
+    {year:"1855",yearNum:1855,region:"日本",field:"社",event:"渋染一揆",importance:"C",mnemonic:"えたもひにんも人やゴーゴー（1855）",note:"身分差別反対一揆",timelineId:"timeline_01"},
+    {year:"1856～1860",yearNum:1856,region:"世界",field:"戦",event:"アロー戦争",importance:"B",mnemonic:"人は殺され（1856）アローで負ける",note:"第二次アヘン戦争",timelineId:"timeline_01"},
+    {year:"1857",yearNum:1857,region:"世界",field:"戦",event:"インド大反乱",importance:"A",mnemonic:"人は粉々（1857）インドの反乱",note:"ムガル帝国滅亡",timelineId:"timeline_01"},
+    {year:"1858",yearNum:1858,region:"日本",field:"外",event:"日米修好通商条約",importance:"S",mnemonic:"井伊は怖いな（1858）不平等だ",note:"米英露仏蘭/ハリス",timelineId:"timeline_01"},
+    {year:"1858",yearNum:1858,region:"日本",field:"政",event:"安政の大獄",importance:"A",mnemonic:"井伊は怖いな（1858）粛清だ",note:"吉田松陰ら処刑",timelineId:"timeline_01"},
+    {year:"1859",yearNum:1859,region:"世界",field:"社",event:"ダーウィン『種の起源』",importance:"E",mnemonic:"人は刻刻（1859）進化する",note:"",timelineId:"timeline_01"},
+    {year:"1860",yearNum:1860,region:"日本",field:"政",event:"桜田門外の変",importance:"A",mnemonic:"水戸藩士井伊は無礼（1860）と切りかかる",note:"水戸藩士",timelineId:"timeline_01"},
+    {year:"1861",yearNum:1861,region:"世界",field:"政",event:"イタリア王国成立",importance:"D",mnemonic:"人は向いた（1861）イタリアへ",note:"",timelineId:"timeline_01"},
+    {year:"1861～1865",yearNum:1861,region:"世界",field:"戦",event:"アメリカ南北戦争",importance:"A",mnemonic:"人は向いた（1861）南北に",note:"リンカーン",timelineId:"timeline_01"},
+    {year:"1862",yearNum:1862,region:"日本",field:"外",event:"生麦事件",importance:"B",mnemonic:"生臭い島津の刃無に帰す（1862）",note:"英商人リチャードソン死亡",timelineId:"timeline_01"},
+    {year:"1863",yearNum:1863,region:"日本",field:"戦",event:"薩英戦争",importance:"B",mnemonic:"薩英は無惨（1863）な戦で争った",note:"",timelineId:"timeline_01"},
+    {year:"1863",yearNum:1863,region:"日本",field:"戦",event:"下関事件",importance:"B",mnemonic:"欧米は無惨（1863）に撃たれた",note:"米/仏/蘭",timelineId:"timeline_01"},
+    {year:"1863",yearNum:1863,region:"世界",field:"政",event:"リンカーンが奴隷解放宣言",importance:"A",mnemonic:"奴隷は無惨（1863）な扱いもうないさ",note:"",timelineId:"timeline_01"},
+    {year:"1864",yearNum:1864,region:"日本",field:"戦",event:"禁門の変",importance:"D",mnemonic:"国内はむしろ（1864）混乱に",note:"",timelineId:"timeline_01"},
+    {year:"1864",yearNum:1864,region:"日本",field:"戦",event:"四国連合艦隊下関砲撃事件",importance:"B",mnemonic:"欧米はむしろ（1864）報復に",note:"米/英/仏/蘭",timelineId:"timeline_01"},
+    {year:"1864",yearNum:1864,region:"日本",field:"戦",event:"第一次長州出兵",importance:"C",mnemonic:"出兵はむしろ（1864）失敗に",note:"",timelineId:"timeline_01"},
+    {year:"1866",yearNum:1866,region:"日本",field:"外",event:"薩長同盟",importance:"A",mnemonic:"薩長の人は無論（1866）同盟歓迎",note:"坂本龍馬",timelineId:"timeline_01"},
+    {year:"1866",yearNum:1866,region:"日本",field:"戦",event:"第二次長州出兵",importance:"C",mnemonic:"長州の人は無論（1866）襲われる",note:"",timelineId:"timeline_01"},
+    {year:"1867",yearNum:1867,region:"日本",field:"政",event:"大政奉還",importance:"S",mnemonic:"江戸幕府一夜虚しく（1867）散りにけり",note:"徳川慶喜",timelineId:"timeline_01"},
+    {year:"1867",yearNum:1867,region:"日本",field:"政",event:"王政復古の大号令",importance:"S",mnemonic:"幕府散り一夜虚しく（1867）王政へ",note:"",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"政",event:"五箇条の御誓文",importance:"S",mnemonic:"一つやろうや（1868）明治維新",note:"明治天皇と明治新政府",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"政",event:"江戸を東京に改称",importance:"B",mnemonic:"威張ろうや（1868）江戸改め東京",note:"",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"政",event:"五榜の掲示",importance:"C",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"政",event:"一世一元の制",importance:"C",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"戦",event:"戊辰戦争（鳥羽伏見の戦い）",importance:"A",mnemonic:"威張ろうや（1868）江戸の誇り",note:"旧幕府軍敗北",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"戦",event:"戊辰戦争（江戸城無血開城）",importance:"A",mnemonic:"",note:"勝海舟",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"戦",event:"戊辰戦争（会津の戦い）",importance:"C",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1868",yearNum:1868,region:"日本",field:"戦",event:"戊辰戦争（五稜郭の戦い）",importance:"A",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1869",yearNum:1869,region:"日本",field:"政",event:"版籍奉還",importance:"A",mnemonic:"一夜で向く（1869）は江戸から明治へ",note:"",timelineId:"timeline_01"},
+    {year:"1869",yearNum:1869,region:"日本",field:"政",event:"東京遷都",importance:"B",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1869",yearNum:1869,region:"日本",field:"政",event:"蝦夷地を北海道に改称",importance:"B",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1869",yearNum:1869,region:"世界",field:"経",event:"スエズ運河開通",importance:"E",mnemonic:"一夜で向く（1869）スエズ運河へと",note:"",timelineId:"timeline_01"},
+    {year:"1870頃",yearNum:1870,region:"日本",field:"経",event:"殖産興業始まる",importance:"A",mnemonic:"産業興せと人は成れ（1870）",note:"",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"日本",field:"経",event:"郵便制度整備",importance:"C",mnemonic:"もう飛脚とは言わない（1871）さ",note:"前島密",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"日本",field:"政",event:"廃藩置県",importance:"A",mnemonic:"もう藩とは言わない（1871）さ",note:"",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"日本",field:"外",event:"岩倉使節団",importance:"A",mnemonic:"もう江戸とは言わない（1871）さ",note:"条約改正→欧米の視察",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"日本",field:"社",event:"解放令",importance:"B",mnemonic:"江戸の名残はもう言わない（1871）",note:"",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"日本",field:"外",event:"日清修好条規",importance:"B",mnemonic:"不平等とは言わない（1871）さ",note:"対等な条約",timelineId:"timeline_01"},
+    {year:"1871",yearNum:1871,region:"世界",field:"政",event:"ドイツ帝国成立",importance:"A",mnemonic:"もうドイツバラバラだとは言わない（1871）さ",note:"鉄血宰相ビスマルク",timelineId:"timeline_01"},
+    {year:"1872",yearNum:1872,region:"日本",field:"社",event:"学制発布",importance:"A",mnemonic:"人は何（1872）より学問修めて",note:"",timelineId:"timeline_01"},
+    {year:"1872",yearNum:1872,region:"日本",field:"経",event:"富岡製糸場操業",importance:"A",mnemonic:"",note:"殖産興業の象徴",timelineId:"timeline_01"},
+    {year:"1872",yearNum:1872,region:"日本",field:"経",event:"新橋～横浜間鉄道開通",importance:"C",mnemonic:"鉄道走ればイヤなニオイ（1872）",note:"当時の横浜駅は現在の桜木町駅",timelineId:"timeline_01"},
+    {year:"1872",yearNum:1872,region:"日本",field:"政",event:"琉球藩設置",importance:"C",mnemonic:"",note:"",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"政",event:"太陽暦採用",importance:"C",mnemonic:"人は涙（1873）の地租・暦・徴兵",note:"グレゴリオ暦移行",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"政",event:"徴兵令",importance:"S",mnemonic:"人は涙（1873）の地租・暦・徴兵",note:"",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"経",event:"地租改正",importance:"S",mnemonic:"人は涙（1873）の地租・暦・徴兵",note:"",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"社",event:"血税一揆",importance:"D",mnemonic:"人は涙（1873）血をとる税？",note:"血税→血の税ではなく徴兵",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"外",event:"征韓論",importance:"B",mnemonic:"人は涙（1873）征韓論",note:"西郷隆盛/板垣退助",timelineId:"timeline_01"},
+    {year:"1873",yearNum:1873,region:"日本",field:"政",event:"西郷・板垣らが政府を去る",importance:"B",mnemonic:"人は涙（1873）だ政府去り",note:"",timelineId:"timeline_01"},
+    {year:"1874",yearNum:1874,region:"日本",field:"戦",event:"佐賀の乱",importance:"D",mnemonic:"苦痛を士族の人話した（1874）",note:"江藤新平",timelineId:"timeline_01"},
+    {year:"1874",yearNum:1874,region:"日本",field:"政",event:"民撰議院設立建白書",importance:"S",mnemonic:"国会への思いを人話した（1874）",note:"板垣退助/自由民権運動",timelineId:"timeline_01"},
+    {year:"1874",yearNum:1874,region:"日本",field:"政",event:"立志社設立",importance:"B",mnemonic:"",note:"板垣退助",timelineId:"timeline_01"},
+    {year:"1874",yearNum:1874,region:"日本",field:"戦",event:"台湾出兵",importance:"B",mnemonic:"日本は怒り人放した（1874）",note:"宮古島民遭難事件",timelineId:"timeline_01"},
+    {year:"1875",yearNum:1875,region:"日本",field:"外",event:"江華島事件",importance:"B",mnemonic:"いやな事（1875）で日朝揉める",note:"",timelineId:"timeline_01"},
+    {year:"1875",yearNum:1875,region:"日本",field:"外",event:"樺太・千島交換条約",importance:"B",mnemonic:"いやな国境（1875）問題解決",note:"",timelineId:"timeline_01"},
+    {year:"1876",yearNum:1876,region:"日本",field:"外",event:"日朝修好条規",importance:"A",mnemonic:"いやな無（1876）理に決めた条規だ",note:"不平等条約",timelineId:"timeline_01"},
+    {year:"1876",yearNum:1876,region:"日本",field:"経",event:"秩禄処分",importance:"D",mnemonic:"いやな無（1876）理に決めた処分だ",note:"俸禄完全廃止",timelineId:"timeline_01"},
+    {year:"1876",yearNum:1876,region:"日本",field:"政",event:"廃刀令",importance:"D",mnemonic:"いやな無（1876）理に奪った刀だ",note:"士族の特権廃止",timelineId:"timeline_01"},
+    {year:"1876",yearNum:1876,region:"日本",field:"戦",event:"士族の反乱（神風連・秋月・萩の乱）",importance:"D",mnemonic:"いやな無（1876）理に抗う士族だ",note:"",timelineId:"timeline_01"},
+    {year:"1876",yearNum:1876,region:"日本",field:"外",event:"小笠原諸島の保有",importance:"C",mnemonic:"言わな無（1876）人島保有すると",note:"日本初の太平洋領土",timelineId:"timeline_01"},
+    {year:"1877",yearNum:1877,region:"日本",field:"戦",event:"西南戦争",importance:"S",mnemonic:"いやな名（1877）最期に士族たち",note:"西郷隆盛/最後の士族反乱",timelineId:"timeline_01"},
+    {year:"1877",yearNum:1877,region:"日本",field:"経",event:"地租を2.5％に引き下げ",importance:"B",mnemonic:"いやな名（1877）撤廃減税だ",note:"竹やりでどんと二分五厘",timelineId:"timeline_01"},
+    {year:"1879",yearNum:1879,region:"日本",field:"政",event:"琉球処分（沖縄県設置）",importance:"A",mnemonic:"人は泣く（1879）よ琉球に",note:"琉球最後の王尚泰",timelineId:"timeline_01"},
+    {year:"1880",yearNum:1880,region:"日本",field:"政",event:"国会期成同盟設立",importance:"A",mnemonic:"いややれ（1880）！国会を",note:"",timelineId:"timeline_01"},
+    {year:"1880頃",yearNum:1880,region:"日本",field:"経",event:"官営工場の払い下げ始まる",importance:"B",mnemonic:"いややれ（1880）！払い下げ",note:"",timelineId:"timeline_01"},
+    {year:"1881",yearNum:1881,region:"日本",field:"政",event:"北海道開拓使官有物払い下げ事件",importance:"B",mnemonic:"いち早い（1881）不正な払い下げ事件",note:"黒田清隆",timelineId:"timeline_01"},
+    {year:"1881",yearNum:1881,region:"日本",field:"政",event:"国会開設の勅諭",importance:"A",mnemonic:"いち早い（1881）国会開設目指すため",note:"1890年の開設を宣言",timelineId:"timeline_01"},
+    {year:"1881",yearNum:1881,region:"日本",field:"政",event:"自由党結成",importance:"A",mnemonic:"板垣の党派は一（1881）つ目自由党",note:"板垣退助",timelineId:"timeline_01"},
+    {year:"1881",yearNum:1881,region:"日本",field:"政",event:"大隈重信政府から追放",importance:"C",mnemonic:"いち早い（1881）大隈追放",note:"払い下げと政府の腐敗追及で失脚",timelineId:"timeline_01"},
+    {year:"1882",yearNum:1882,region:"日本",field:"政",event:"軍人勅諭",importance:"D",mnemonic:"人はやっ（1882）ぱり陛下に忠誠",note:"",timelineId:"timeline_01"},
+    {year:"1882",yearNum:1882,region:"日本",field:"政",event:"立憲改進党結成",importance:"A",mnemonic:"大隈の党派は二（1882）つ目改進党",note:"大隈重信",timelineId:"timeline_01"},
+    {year:"1882",yearNum:1882,region:"日本",field:"政",event:"福島事件",importance:"C",mnemonic:"人はやっ（1882）ぱり国に抗う",note:"自由党弾圧",timelineId:"timeline_01"},
+    {year:"1882",yearNum:1882,region:"日本",field:"政",event:"板垣退助遭難",importance:"D",mnemonic:"板垣の党派は遂（1882）に大ピンチ？",note:"板垣死すとも自由は死せず",timelineId:"timeline_01"},
+    {year:"1882",yearNum:1882,region:"日本",field:"政",event:"伊藤博文ヨーロッパ派遣",importance:"C",mnemonic:"伊藤はやっ（1882）と国会設立へ",note:"1885年の内閣創設へ",timelineId:"timeline_01"},
+    {year:"1883",yearNum:1883,region:"日本",field:"政",event:"高田事件",importance:"D",mnemonic:"いや破産（1883）だよ自由党員",note:"自由党弾圧",timelineId:"timeline_01"},
+    {year:"1883",yearNum:1883,region:"日本",field:"社",event:"鹿鳴館開館",importance:"B",mnemonic:"いや破産（1883）だよ欧化政策",note:"井上馨（外務卿）",timelineId:"timeline_01"},
+    {year:"1884",yearNum:1884,region:"日本",field:"政",event:"秩父事件",importance:"A",mnemonic:"人は走（1884）る民権求め",note:"困民党",timelineId:"timeline_01"},
+    {year:"1884",yearNum:1884,region:"世界",field:"外",event:"ベルリン会議（アフリカ分割）",importance:"D",mnemonic:"人は野心（1884）でアフリカ分割",note:"",timelineId:"timeline_01"},
+    {year:"1885",yearNum:1885,region:"日本",field:"政",event:"内閣制度創設（伊藤博文初代首相）",importance:"S",mnemonic:"批判は御（1885）免の内閣制度",note:"伊藤博文",timelineId:"timeline_01"},
+    {year:"1886",yearNum:1886,region:"日本",field:"外",event:"ノルマントン号事件",importance:"A",mnemonic:"船長の人は野郎（1886）だノルマントン",note:"船長ドレイクはイギリス人",timelineId:"timeline_01"},
+    {year:"1886",yearNum:1886,region:"日本",field:"社",event:"義務教育が4年に延長",importance:"C",mnemonic:"4年間人はやろう（1886）と教育を",note:"森有礼（文部大臣）",timelineId:"timeline_01"},
+    {year:"1889",yearNum:1889,region:"日本",field:"政",event:"大日本帝国憲法発布",importance:"S",mnemonic:"いち早く（1889）憲法定めた日本国",note:"プロイセン憲法がモデル",timelineId:"timeline_01"},
+    {year:"1890",yearNum:1890,region:"日本",field:"社",event:"教育勅語",importance:"S",mnemonic:"一夜暮れ（1890）学に励めと勅語出す",note:"忠君愛国と孝",timelineId:"timeline_01"},
+    {year:"1890",yearNum:1890,region:"日本",field:"政",event:"第一回帝国議会",importance:"B",mnemonic:"一夜暮れ（1890）選挙の後に初議会",note:"11月29日開会",timelineId:"timeline_01"},
+    {year:"1894",yearNum:1894,region:"世界",field:"戦",event:"甲午農民戦争",importance:"B",mnemonic:"違約よ（1894）甲午農民戦争",note:"日清戦争の原因に",timelineId:"timeline_01"},
+    {year:"1894",yearNum:1894,region:"日本",field:"戦",event:"日清戦争",importance:"S",mnemonic:"違約よ（1894）日清戦争",note:"",timelineId:"timeline_01"},
+    {year:"1894",yearNum:1894,region:"日本",field:"外",event:"領事裁判権（治外法権）撤廃",importance:"S",mnemonic:"違約よ（1894）さらばだ治外法権",note:"陸奥宗光",timelineId:"timeline_01"},
+    {year:"1895",yearNum:1895,region:"日本",field:"外",event:"下関条約",importance:"A",mnemonic:"一躍ご（1895）機嫌勝利の条約",note:"台湾/澎湖諸島/遼東半島割譲",timelineId:"timeline_01"},
+    {year:"1895",yearNum:1895,region:"日本",field:"外",event:"三国干渉",importance:"B",mnemonic:"一躍ご（1895）機嫌損ねた干渉",note:"露/仏/独/遼東半島返還",timelineId:"timeline_01"},
+    {year:"1895",yearNum:1895,region:"日本",field:"外",event:"尖閣諸島が沖縄県に編入",importance:"C",mnemonic:"一躍ご（1895）機嫌尖閣領有",note:"",timelineId:"timeline_01"},
+    {year:"1897",yearNum:1897,region:"世界",field:"政",event:"大韓帝国成立",importance:"B",mnemonic:"一夜苦難（1897）の大韓帝国",note:"日本/露による干渉激化",timelineId:"timeline_01"},
+    {year:"1898",yearNum:1898,region:"世界",field:"戦",event:"米西戦争",importance:"E",mnemonic:"アメリカが一躍発（1898）展帝国へ",note:"西＝スペイン",timelineId:"timeline_01"},
+    {year:"1899",yearNum:1899,region:"日本",field:"社",event:"北海道旧土人保護法",importance:"C",mnemonic:"人は窮屈（1899）北海道",note:"同化政策/1997年廃止",timelineId:"timeline_01"},
+    {year:"1900",yearNum:1900,region:"世界",field:"戦",event:"義和団事件（北清事変）",importance:"A",mnemonic:"日暮れ列（1900）強8国出兵",note:"1899年山東省で活動激化",timelineId:"timeline_01"},
+    {year:"1900",yearNum:1900,region:"日本",field:"政",event:"治安警察法",importance:"C",mnemonic:"日暮れ令（1900）圧政治を制限",note:"",timelineId:"timeline_01"},
+    {year:"1900",yearNum:1900,region:"日本",field:"政",event:"立憲政友会結成",importance:"A",mnemonic:"日暮れ烈（1900）火の政友会",note:"自由党と合流/伊藤博文",timelineId:"timeline_01"},
+    {year:"1901",yearNum:1901,region:"日本",field:"経",event:"八幡製鉄所操業",importance:"A",mnemonic:"行くぜ一（1901）番八幡の火入れ",note:"日清戦争の賠償金で建設",timelineId:"timeline_01"},
+    {year:"1901",yearNum:1901,region:"日本",field:"政",event:"社会民主党結成",importance:"E",mnemonic:"行くぜ一（1901）番社民党",note:"結成当日に即日解散",timelineId:"timeline_01"},
+    {year:"1901",yearNum:1901,region:"日本",field:"社",event:"足尾銅山鉱毒事件",importance:"B",mnemonic:"行くぜ一（1901）番陛下に直訴",note:"田中正造",timelineId:"timeline_01"},
+    {year:"1902",yearNum:1902,region:"日本",field:"外",event:"日英同盟",importance:"A",mnemonic:"遠く輪に（1902）なる日英同盟",note:"露牽制目的の軍事同盟",timelineId:"timeline_01"},
+    {year:"1904",yearNum:1904,region:"日本",field:"戦",event:"日露戦争",importance:"S",mnemonic:"戦苦を承（1904）知で戦争へ",note:"日本海海戦/東郷平八郎",timelineId:"timeline_01"},
+    {year:"1905",yearNum:1905,region:"世界",field:"政",event:"ロシア第一革命（血の日曜日事件）",importance:"D",mnemonic:"遠く起こ（1905）るは血の革命",note:"",timelineId:"timeline_01"},
+    {year:"1905",yearNum:1905,region:"日本",field:"外",event:"竹島が島根県に編入",importance:"C",mnemonic:"遠く置こ（1905）うよ竹島を",note:"",timelineId:"timeline_01"},
+    {year:"1905",yearNum:1905,region:"日本",field:"外",event:"ポーツマス条約",importance:"A",mnemonic:"遠く起こ（1905）るは日露の講和",note:"賠償金は無し",timelineId:"timeline_01"},
+    {year:"1905",yearNum:1905,region:"日本",field:"外",event:"韓国統監府設置",importance:"A",mnemonic:"遠く起こ（1905）るは併合の予兆",note:"初代統監伊藤博文",timelineId:"timeline_01"},
+    {year:"1905",yearNum:1905,region:"日本",field:"社",event:"日比谷焼き打ち事件",importance:"B",mnemonic:"ひどく怒（1905）るは講和の条件",note:"ポーツマス条約への不満",timelineId:"timeline_01"},
+    {year:"1907",yearNum:1907,region:"日本",field:"社",event:"義務教育が6年に延長",importance:"B",mnemonic:"先駆女（1907）も男も6年教育",note:"小学校令改正",timelineId:"timeline_01"},
+    {year:"1909",yearNum:1909,region:"日本",field:"政",event:"伊藤博文暗殺",importance:"B",mnemonic:"安重根行くぜ苦（1909）難のハルビンへ",note:"安重根",timelineId:"timeline_01"},
+    {year:"1910",yearNum:1910,region:"日本",field:"外",event:"韓国併合",importance:"A",mnemonic:"韓国に行くと（1910）決めれば併合だ",note:"韓国を植民地化",timelineId:"timeline_01"},
+    {year:"1910",yearNum:1910,region:"日本",field:"政",event:"大逆事件",importance:"B",mnemonic:"暗殺に行くと（1910）言われて弾圧だ",note:"幸徳秋水ら処刑",timelineId:"timeline_01"},
+    {year:"1911",yearNum:1911,region:"世界",field:"政",event:"辛亥革命",importance:"S",mnemonic:"心外だ行く人々（1911）が清倒す",note:"孫文/三民主義",timelineId:"timeline_01"},
+    {year:"1911",yearNum:1911,region:"日本",field:"外",event:"関税自主権の回復",importance:"S",mnemonic:"ひどくいい（1911）じゃん関税自主権",note:"小村寿太郎",timelineId:"timeline_01"},
+    {year:"1912",yearNum:1912,region:"世界",field:"政",event:"中華民国成立",importance:"A",mnemonic:"戦苦いつ（1912）しか南京でアジア初の共和国",note:"孫文→袁世凱へ",timelineId:"timeline_01"},
+  ];
+
+  // ============================================================
+  //  インポート処理
+  // ============================================================
+  window.startImport = async function() {
+    const btn = document.getElementById("btn-import");
+    btn.disabled = true;
+    document.getElementById("progress-bg").style.display = "block";
+    document.getElementById("log").textContent = "";
+
+    log("🚀 インポートを開始します...");
+
+    try {
+      // 1. タイムライン情報を登録
+      log("📋 タイムライン情報を登録中...");
+      for (const tl of TIMELINE_DATA) {
+        await setDoc(doc(db, "timelines", tl.id), tl);
+        log(`  ✅ ${tl.title}`);
+      }
+
+      // 2. 既存eventsを確認
+      log("\n📦 出来事データを投入中（" + EVENTS_DATA.length + "件）...");
+      const total  = EVENTS_DATA.length;
+      const BATCH_SIZE = 400;
+
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        const chunk = EVENTS_DATA.slice(i, i + BATCH_SIZE);
+
+        chunk.forEach(event => {
+          const ref = doc(collection(db, "events"));
+          batch.set(ref, { ...event, createdAt: new Date() });
+        });
+
+        await batch.commit();
+        const done = Math.min(i + BATCH_SIZE, total);
+        setProgress(done, total);
+        log(`  ✅ ${done} / ${total} 件コミット`);
+      }
+
+      log("\n", "done");
+      log("🎉 インポート完了！合計 " + total + " 件の出来事を登録しました", "done");
+      log("Firebaseコンソールで「events」コレクションを確認してください。", "done");
+
+      document.getElementById("btn-clear").style.display = "inline-flex";
+    } catch(e) {
+      log("\n❌ エラーが発生しました:", "err");
+      log(e.message, "err");
+      log("\n考えられる原因:", "warn");
+      log("・Firestoreのルールで書き込みが拒否されている（テストモードか確認）", "warn");
+      log("・インターネット接続が切れている", "warn");
+      btn.disabled = false;
+    }
+  };
+
+  // ============================================================
+  //  全データ削除（やり直し用）
+  // ============================================================
+  window.clearData = async function() {
+    if (!confirm("eventsコレクションの全データを削除しますか？\n（やり直したいときに使います）")) return;
+
+    const btn = document.getElementById("btn-clear");
+    btn.disabled = true;
+    log("\n🗑 データを削除中...", "warn");
+
+    try {
+      const snap = await getDocs(collection(db, "events"));
+      let count = 0;
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+        count++;
+        if (count % 10 === 0) log(`  削除中... ${count} / ${snap.size} 件`);
+      }
+      log(`✅ ${count} 件削除完了`, "done");
+      log("もう一度「年表データを投入」ボタンを押してください。", "done");
+      document.getElementById("btn-import").disabled = false;
+      btn.disabled = false;
+    } catch(e) {
+      log("❌ 削除エラー: " + e.message, "err");
+      btn.disabled = false;
+    }
+  };
+</script>
+
+</body>
+</html>
